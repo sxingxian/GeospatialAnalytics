@@ -1,0 +1,66 @@
+@import url('https://fonts.googleapis.com/css?family=Poppins|Roboto:400,400i,700,700i&display=swap');
+
+:root {
+  --main-font-size: 14px;
+  
+  --header-font-fam: "Poppins";
+  --body-font-fam: "Roboto";
+  
+  --margin-size-s: 10px;
+  --margin-size-m: 20px;
+  --margin-size-l: 30px;
+  --margin-size-xl: 50px;
+  
+  /** Custom COlor **/
+  --color1: #000;
+  --color2: white;
+  --color3: lightgrey; 
+  --color4: orange;
+  
+  /** Alpha Color **/
+  --TColor1: rgba(0,0,0,0.1);
+  --TColor2: rgba(255,255,255,0.8);
+}
+
+
+
+
+html, body{
+  font-size: var(--main-font-size);
+  font-family: var(--body-font-fam);
+}
+
+h1, h2, h3, h4, h5{
+  font-family: var(--header-font-fam);
+}
+
+h1{
+  font-size: 1.5em;
+}
+
+
+
+header.headroom {
+  color: var(--Color1);
+  background-color: var(--TColor2);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+  -o-backdrop-filter: blur(5px);
+  -ms-backdrop-filter: blur(5px);
+  -mz-backdrop-filter: blur(5px);
+}
+
+header.headroom:hover{
+  box-shadow: 0px 5px 15px var(--TColor1);
+}
+
+
+a:hover i.fa{
+  color: var(--color4);
+}
+
+
+/** Transition **/
+header.headroom{
+  transition: all 0.25s ease;
+}
