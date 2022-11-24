@@ -110,5 +110,117 @@
     "title": "GeospatialAnalytics",
     "section": "",
     "text": "To learn more about Quarto websites visit https://quarto.org/docs/websites.\n\n1 + 1\n\n[1] 2"
+  },
+  {
+    "objectID": "HandsOn_Ex/HandsOn_2/index.html",
+    "href": "HandsOn_Ex/HandsOn_2/index.html",
+    "title": "Chapter 2. Choropleth Mapping with R",
+    "section": "",
+    "text": "Choropleth mapping involves the symbolization of enumeration units (i.e. countries, provinces, states, countries or census units) using area patterns or graduated colors.\nIn this hands-on exercise, I will learn how to plot functional choropleth maps by using tmap package in R."
+  },
+  {
+    "objectID": "HandsOn_Ex/HandsOn_2/index.html#data-acquisition",
+    "href": "HandsOn_Ex/HandsOn_2/index.html#data-acquisition",
+    "title": "Chapter 2. Choropleth Mapping with R",
+    "section": "Data Acquisition",
+    "text": "Data Acquisition\n\nData.gov.sg: Master Plan 2014 Subzone Boundary (Web)\nDepartment of Statistics, Singapore: Singapore Residents by Planning Area/ Subzone, Age Group, Sex and Type of Dwelling, June 2011-2020 (CSV format)"
+  },
+  {
+    "objectID": "HandsOn_Ex/HandsOn_2/index.html#importing-data",
+    "href": "HandsOn_Ex/HandsOn_2/index.html#importing-data",
+    "title": "Chapter 2. Choropleth Mapping with R",
+    "section": "Importing Data",
+    "text": "Importing Data\n\nGeospatial Data\nUsing st_read() function of sf package to import the relevant shapefile into R.\n\nmpsz <- st_read(dsn = \"data/geospatial\", \n                layer = \"MP14_SUBZONE_WEB_PL\")\n\nReading layer `MP14_SUBZONE_WEB_PL' from data source \n  `C:\\Users\\sxing\\OneDrive - Singapore Management University\\ISSS624 Applied Geospatial Analytics\\R\\sxingxian\\GeospatialAnalytics\\HandsOn_Ex\\HandsOn_2\\data\\geospatial' \n  using driver `ESRI Shapefile'\nSimple feature collection with 323 features and 15 fields\nGeometry type: MULTIPOLYGON\nDimension:     XY\nBounding box:  xmin: 2667.538 ymin: 15748.72 xmax: 56396.44 ymax: 50256.33\nProjected CRS: SVY21\n\n\nUsing the following code chunk to view the top 10 records within the dataset\n\nmpsz\n\nSimple feature collection with 323 features and 15 fields\nGeometry type: MULTIPOLYGON\nDimension:     XY\nBounding box:  xmin: 2667.538 ymin: 15748.72 xmax: 56396.44 ymax: 50256.33\nProjected CRS: SVY21\nFirst 10 features:\n   OBJECTID SUBZONE_NO       SUBZONE_N SUBZONE_C CA_IND      PLN_AREA_N\n1         1          1    MARINA SOUTH    MSSZ01      Y    MARINA SOUTH\n2         2          1    PEARL'S HILL    OTSZ01      Y          OUTRAM\n3         3          3       BOAT QUAY    SRSZ03      Y SINGAPORE RIVER\n4         4          8  HENDERSON HILL    BMSZ08      N     BUKIT MERAH\n5         5          3         REDHILL    BMSZ03      N     BUKIT MERAH\n6         6          7  ALEXANDRA HILL    BMSZ07      N     BUKIT MERAH\n7         7          9   BUKIT HO SWEE    BMSZ09      N     BUKIT MERAH\n8         8          2     CLARKE QUAY    SRSZ02      Y SINGAPORE RIVER\n9         9         13 PASIR PANJANG 1    QTSZ13      N      QUEENSTOWN\n10       10          7       QUEENSWAY    QTSZ07      N      QUEENSTOWN\n   PLN_AREA_C       REGION_N REGION_C          INC_CRC FMEL_UPD_D   X_ADDR\n1          MS CENTRAL REGION       CR 5ED7EB253F99252E 2014-12-05 31595.84\n2          OT CENTRAL REGION       CR 8C7149B9EB32EEFC 2014-12-05 28679.06\n3          SR CENTRAL REGION       CR C35FEFF02B13E0E5 2014-12-05 29654.96\n4          BM CENTRAL REGION       CR 3775D82C5DDBEFBD 2014-12-05 26782.83\n5          BM CENTRAL REGION       CR 85D9ABEF0A40678F 2014-12-05 26201.96\n6          BM CENTRAL REGION       CR 9D286521EF5E3B59 2014-12-05 25358.82\n7          BM CENTRAL REGION       CR 7839A8577144EFE2 2014-12-05 27680.06\n8          SR CENTRAL REGION       CR 48661DC0FBA09F7A 2014-12-05 29253.21\n9          QT CENTRAL REGION       CR 1F721290C421BFAB 2014-12-05 22077.34\n10         QT CENTRAL REGION       CR 3580D2AFFBEE914C 2014-12-05 24168.31\n     Y_ADDR SHAPE_Leng SHAPE_Area                       geometry\n1  29220.19   5267.381  1630379.3 MULTIPOLYGON (((31495.56 30...\n2  29782.05   3506.107   559816.2 MULTIPOLYGON (((29092.28 30...\n3  29974.66   1740.926   160807.5 MULTIPOLYGON (((29932.33 29...\n4  29933.77   3313.625   595428.9 MULTIPOLYGON (((27131.28 30...\n5  30005.70   2825.594   387429.4 MULTIPOLYGON (((26451.03 30...\n6  29991.38   4428.913  1030378.8 MULTIPOLYGON (((25899.7 297...\n7  30230.86   3275.312   551732.0 MULTIPOLYGON (((27746.95 30...\n8  30222.86   2208.619   290184.7 MULTIPOLYGON (((29351.26 29...\n9  29893.78   6571.323  1084792.3 MULTIPOLYGON (((20996.49 30...\n10 30104.18   3454.239   631644.3 MULTIPOLYGON (((24472.11 29...\n\n\n\n\nAttribute Data\nThe dataset from the csv file, respopagesextod2011to2020.csv, will be imported into R.\n\npopdata <- read_csv(\"data/aspatial/respopagesextod2011to2020.csv\")\n\nRows: 984656 Columns: 7\n── Column specification ────────────────────────────────────────────────────────\nDelimiter: \",\"\nchr (5): PA, SZ, AG, Sex, TOD\ndbl (2): Pop, Time\n\nℹ Use `spec()` to retrieve the full column specification for this data.\nℹ Specify the column types or set `show_col_types = FALSE` to quiet this message."
+  },
+  {
+    "objectID": "HandsOn_Ex/HandsOn_2/index.html#joining-attribute-data-and-geospatial-data",
+    "href": "HandsOn_Ex/HandsOn_2/index.html#joining-attribute-data-and-geospatial-data",
+    "title": "Chapter 2. Choropleth Mapping with R",
+    "section": "Joining Attribute Data And Geospatial Data",
+    "text": "Joining Attribute Data And Geospatial Data\nBefore a georelational join can be performed, we will need to convert the values in PA and SZ fields to uppercase, as the both PA and SZ fields are in combination of upper- and lowercase, whereas, values in subzone_n and pln_areaa_n fields are in uppercase.\n\npopdata2020 <- popdata2020 %>%\n  mutate_at(.vars = vars(PA, SZ), \n          .funs = funs(toupper)) %>%\n  filter(`ECONOMY ACTIVE` > 0)\n\nWarning: `funs()` was deprecated in dplyr 0.8.0.\nℹ Please use a list of either functions or lambdas:\n\n# Simple named list: list(mean = mean, median = median)\n\n# Auto named with `tibble::lst()`: tibble::lst(mean, median)\n\n# Using lambdas list(~ mean(., trim = .2), ~ median(., na.rm = TRUE))\n\n\nUsing left_join() in dplyr to join the geographical data and attribute table using planning subzone name as the common identifier.\n\nleft_join() - part of dplyr package used with mpsz simple feature data frame as the left data table is to ensure that the output will be a simple features data frame.\n\n\nmpsz_pop2020 <- left_join(mpsz, popdata2020,\n                          by = c(\"SUBZONE_N\" = \"SZ\"))\n\n\nwrite_rds(mpsz_pop2020, \"data/rds/mpszpop2020.rds\")"
+  },
+  {
+    "objectID": "HandsOn_Ex/HandsOn_2/index.html#plotting-using-qtm",
+    "href": "HandsOn_Ex/HandsOn_2/index.html#plotting-using-qtm",
+    "title": "Chapter 2. Choropleth Mapping with R",
+    "section": "Plotting Using qtm()",
+    "text": "Plotting Using qtm()\nThis is the quickest method to create a choropleth map. It is concise and provides a good default visualization in multiple cases.\n\ntmap_mode(\"plot\")\n\ntmap mode set to plotting\n\nqtm(mpsz_pop2020, \n    fill = \"DEPENDENCY\")\n\n\n\n\nAttributes used in the above code chunk:\n\ntmap_mode() - with \"plot\" option is used to produce a static map. For interactive mode, \"view\" option should be used.\nfill - an argument used to map the attribute (i.e. DEPENDENCY)"
+  },
+  {
+    "objectID": "HandsOn_Ex/HandsOn_2/index.html#plotting-using-tmaps-elements",
+    "href": "HandsOn_Ex/HandsOn_2/index.html#plotting-using-tmaps-elements",
+    "title": "Chapter 2. Choropleth Mapping with R",
+    "section": "Plotting Using tmap's elements",
+    "text": "Plotting Using tmap's elements\nThe main disadvantage of qtm() makes aesthetics of individual layers harder to control. This can be resolved by using tmap’s drawing elements to draw high quality cartographic choropleth map.\n\ntm_shape(mpsz_pop2020)+\n  tm_fill(\"DEPENDENCY\", \n          style = \"quantile\", \n          palette = \"Blues\",\n          title = \"Dependency ratio\") +\n  tm_layout(main.title = \"Distribution of Dependency Ratio by planning subzone\",\n            main.title.position = \"center\",\n            main.title.size = 1.2,\n            legend.height = 0.45, \n            legend.width = 0.35,\n            frame = TRUE) +\n  tm_borders(alpha = 0.5) +\n  tm_compass(type=\"8star\", size = 2) +\n  tm_scale_bar() +\n  tm_grid(alpha =0.2) +\n  tm_credits(\"Source: Planning Sub-zone boundary from Urban Redevelopment Authorithy (URA)\\n and Population data from Department of Statistics DOS\", \n             position = c(\"left\", \"bottom\"))"
+  },
+  {
+    "objectID": "HandsOn_Ex/HandsOn_2/index.html#drawing-a-base-map",
+    "href": "HandsOn_Ex/HandsOn_2/index.html#drawing-a-base-map",
+    "title": "Chapter 2. Choropleth Mapping with R",
+    "section": "Drawing A Base Map",
+    "text": "Drawing A Base Map\nThe following is used:\n\ntm_shape() - used to define the input data\ntm_polygons() - used to draw the planning subzone ploygons\n\n\ntm_shape(mpsz_pop2020) +\n  tm_polygons()"
+  },
+  {
+    "objectID": "HandsOn_Ex/HandsOn_2/index.html#drawing-choropleth-map-using-tm_ploygons",
+    "href": "HandsOn_Ex/HandsOn_2/index.html#drawing-choropleth-map-using-tm_ploygons",
+    "title": "Chapter 2. Choropleth Mapping with R",
+    "section": "Drawing Choropleth Map Using tm_ploygons()",
+    "text": "Drawing Choropleth Map Using tm_ploygons()\nThe following code chunk will be used to show the geographical distribution of a selected variable by planning subzone. This can be done by assigning the target variable to tm_polygons(). In this case, we will assign Dependency as the target variable.\n\ntm_shape(mpsz_pop2020)+\n  tm_polygons(\"DEPENDENCY\")"
+  },
+  {
+    "objectID": "HandsOn_Ex/HandsOn_2/index.html#drawing-a-choropleth-map-using-tm_fill-and-tm_border",
+    "href": "HandsOn_Ex/HandsOn_2/index.html#drawing-a-choropleth-map-using-tm_fill-and-tm_border",
+    "title": "Chapter 2. Choropleth Mapping with R",
+    "section": "Drawing a choropleth map using tm_fill() and tm_border()",
+    "text": "Drawing a choropleth map using tm_fill() and tm_border()\n\ntm_shape(mpsz_pop2020)+\n  tm_fill(\"DEPENDENCY\")\n\n\n\n\nUsing the above code chunk shows that the planning subzones are shared according to the respective dependency values. We will need to add the boundary of the planning subzone in order to get a clearer clarity.\n\ntm_shape(mpsz_pop2020)+\n  tm_fill(\"DEPENDENCY\") +\n  tm_borders(lwd = 0.1,  alpha = 1)"
+  },
+  {
+    "objectID": "HandsOn_Ex/HandsOn_2/index.html#plotting-choropleth-maps-with-built-in-classification-methods",
+    "href": "HandsOn_Ex/HandsOn_2/index.html#plotting-choropleth-maps-with-built-in-classification-methods",
+    "title": "Chapter 2. Choropleth Mapping with R",
+    "section": "Plotting choropleth maps with built-in classification methods",
+    "text": "Plotting choropleth maps with built-in classification methods\nMethod: jenks\n\ntm_shape(mpsz_pop2020)+\n  tm_fill(\"DEPENDENCY\",\n          n = 5,\n          style = \"jenks\") +\n  tm_borders(alpha = 0.5)\n\n\n\n\nMethod: equal\nAn EQUAL data classification method is used.\n\ntm_shape(mpsz_pop2020)+\n  tm_fill(\"DEPENDENCY\",\n          n = 5,\n          style = \"equal\") +\n  tm_borders(alpha = 0.5)\n\n\n\n\nThe distribution of quantile data classification method are more evenly distributed then equal data classification method.\n\nChoropleth Maps With Different Classification Methods\nMethod: kmeans\n\ntm_shape(mpsz_pop2020) + tm_fill(\"DEPENDENCY\",\n          n = 5, style = \"kmeans\") + tm_borders(alpha = 0.5)\n\n\n\n\nMethod: headtails\n\ntm_shape(mpsz_pop2020) + tm_fill(\"DEPENDENCY\",\n          n = 5, style = \"headtails\") + tm_borders(alpha = 0.5)\n\n\n\n\nMethod: pretty\n\ntm_shape(mpsz_pop2020) + tm_fill(\"DEPENDENCY\",\n          n = 5, style = \"pretty\") + tm_borders(alpha = 0.5)\n\n\n\n\nObservations:\n\nThe methods pretty and equal are both visually dominated by the lighter tone, as the dependency values are all mostly at the lower end of the range.\nThe methods kmeans and jenks have a wider spread of colors with differences in coloring of subzones.\nThe method headstails has lesser class or group of colors that apparently lean towards the lower end of spectrum.\n\n\n\nChoropleth Maps With Same Classification Method With Different Classes\nUsing jenks method with different number of classes, n.\nn = 3\n\ntm_shape(mpsz_pop2020) + tm_fill(\"DEPENDENCY\", n = 3, style = \"jenks\") + tm_borders(alpha = 0.5)\n\n\n\n\nn = 4\n\ntm_shape(mpsz_pop2020) + tm_fill(\"DEPENDENCY\", n = 4, style = \"jenks\") + tm_borders(alpha = 0.5)\n\n\n\n\nn = 5\n\ntm_shape(mpsz_pop2020) + tm_fill(\"DEPENDENCY\", n = 5, style = \"jenks\") + tm_borders(alpha = 0.5)\n\n\n\n\nn = 6\n\ntm_shape(mpsz_pop2020) + tm_fill(\"DEPENDENCY\", n = 6, style = \"jenks\") + tm_borders(alpha = 0.5)\n\n\n\n\nn = 7\n\ntm_shape(mpsz_pop2020) + tm_fill(\"DEPENDENCY\", n = 7, style = \"jenks\") + tm_borders(alpha = 0.5)\n\n\n\n\nObservation:\n\nThe lesser number of classes has the tendency to group subzones into one class which may result in an inaccurate representation.\nThe higher the number of classes will create groups with one color subzone. Similarly, this may not be an accurate representation."
+  },
+  {
+    "objectID": "HandsOn_Ex/HandsOn_2/index.html#plotting-choropleth-map-with-custom-break",
+    "href": "HandsOn_Ex/HandsOn_2/index.html#plotting-choropleth-map-with-custom-break",
+    "title": "Chapter 2. Choropleth Mapping with R",
+    "section": "Plotting Choropleth Map with Custom Break",
+    "text": "Plotting Choropleth Map with Custom Break\n\nsummary(mpsz_pop2020$DEPENDENCY)\n\n   Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's \n 0.0000  0.6519  0.7025  0.7742  0.7645 19.0000      92 \n\n\n\ntm_shape(mpsz_pop2020)+\n  tm_fill(\"DEPENDENCY\",\n          breaks = c(0, 0.60, 0.70, 0.80, 0.90, 1.00)) +\n  tm_borders(alpha = 0.5)\n\nWarning: Values have found that are higher than the highest break"
+  },
+  {
+    "objectID": "HandsOn_Ex/HandsOn_2/index.html#using-colorbrewer-paletter",
+    "href": "HandsOn_Ex/HandsOn_2/index.html#using-colorbrewer-paletter",
+    "title": "Chapter 2. Choropleth Mapping with R",
+    "section": "Using ColorBrewer Paletter",
+    "text": "Using ColorBrewer Paletter\n\ntm_shape(mpsz_pop2020)+\n  tm_fill(\"DEPENDENCY\",\n          n = 6,\n          style = \"quantile\",\n          palette = \"Blues\") +\n  tm_borders(alpha = 0.5)\n\n\n\n\nReverse the color shading by adding a ‘-’ prefix.\n\ntm_shape(mpsz_pop2020)+\n  tm_fill(\"DEPENDENCY\",\n          style = \"quantile\",\n          palette = \"-Greens\") +\n  tm_borders(alpha = 0.5)"
+  },
+  {
+    "objectID": "HandsOn_Ex/HandsOn_2/index.html#map-legend",
+    "href": "HandsOn_Ex/HandsOn_2/index.html#map-legend",
+    "title": "Chapter 2. Choropleth Mapping with R",
+    "section": "Map Legend",
+    "text": "Map Legend\nSeveral legend options are provided to change the placement, format and appearance of the legend.\n\ntm_shape(mpsz_pop2020)+\n  tm_fill(\"DEPENDENCY\", \n          style = \"jenks\", \n          palette = \"Blues\", \n          legend.hist = TRUE, \n          legend.is.portrait = TRUE,\n          legend.hist.z = 0.1) +\n  tm_layout(main.title = \"Distribution of Dependency Ratio by planning subzone \\n(Jenks classification)\",\n            main.title.position = \"center\",\n            main.title.size = 1,\n            legend.height = 0.45, \n            legend.width = 0.35,\n            legend.outside = FALSE,\n            legend.position = c(\"right\", \"bottom\"),\n            frame = FALSE) +\n  tm_borders(alpha = 0.5)"
+  },
+  {
+    "objectID": "HandsOn_Ex/HandsOn_2/index.html#map-style",
+    "href": "HandsOn_Ex/HandsOn_2/index.html#map-style",
+    "title": "Chapter 2. Choropleth Mapping with R",
+    "section": "Map Style",
+    "text": "Map Style\n\ntm_shape(mpsz_pop2020)+\n  tm_fill(\"DEPENDENCY\", \n          style = \"quantile\", \n          palette = \"-Greens\") +\n  tm_borders(alpha = 0.5) +\n  tmap_style(\"classic\")\n\ntmap style set to \"classic\"\n\n\nother available styles are: \"white\", \"gray\", \"natural\", \"cobalt\", \"col_blind\", \"albatross\", \"beaver\", \"bw\", \"watercolor\""
+  },
+  {
+    "objectID": "HandsOn_Ex/HandsOn_2/index.html#cartographic-furniture",
+    "href": "HandsOn_Ex/HandsOn_2/index.html#cartographic-furniture",
+    "title": "Chapter 2. Choropleth Mapping with R",
+    "section": "Cartographic Furniture",
+    "text": "Cartographic Furniture\ntmap package provides arguments to draw other map furniture, such as compass, scale bar and grid lines.\n\ntm_shape(mpsz_pop2020)+\n  tm_fill(\"DEPENDENCY\", \n          style = \"quantile\", \n          palette = \"Blues\",\n          title = \"No. of persons\") +\n  tm_layout(main.title = \"Distribution of Dependency Ratio \\nby planning subzone\",\n            main.title.position = \"center\",\n            main.title.size = 1.2,\n            legend.height = 0.45, \n            legend.width = 0.35,\n            frame = TRUE) +\n  tm_borders(alpha = 0.5) +\n  tm_compass(type=\"8star\", size = 2) +\n  tm_scale_bar(width = 0.15) +\n  tm_grid(lwd = 0.1, alpha = 0.2) +\n  tm_credits(\"Source: Planning Sub-zone boundary from Urban Redevelopment Authorithy (URA)\\n and Population data from Department of Statistics DOS\", \n             position = c(\"left\", \"bottom\"))\n\n\n\n\nThe following code chunk will help to reset the default style.\n\ntmap_style(\"white\")\n\ntmap style set to \"white\"\n\n\nother available styles are: \"gray\", \"natural\", \"cobalt\", \"col_blind\", \"albatross\", \"beaver\", \"bw\", \"classic\", \"watercolor\""
+  },
+  {
+    "objectID": "HandsOn_Ex/HandsOn_2/index.html#multiple-choropleth-maps",
+    "href": "HandsOn_Ex/HandsOn_2/index.html#multiple-choropleth-maps",
+    "title": "Chapter 2. Choropleth Mapping with R",
+    "section": "Multiple Choropleth Maps",
+    "text": "Multiple Choropleth Maps\nFacet maps composed of many maps arranged side-by-side, sometimes stacked vertically. Small multiple maps enable the visualization of how spatial relationship change with respect to another variable, such as time.\n\nAssign Multiple Values to One of the Aesthetic Arguments\n\ntm_shape(mpsz_pop2020)+\n  tm_fill(c(\"YOUNG\", \"AGED\"),\n          style = \"equal\", \n          palette = \"Blues\") +\n  tm_layout(legend.position = c(\"right\", \"bottom\")) +\n  tm_borders(alpha = 0.5) +\n  tmap_style(\"white\")\n\ntmap style set to \"white\"\n\n\nother available styles are: \"gray\", \"natural\", \"cobalt\", \"col_blind\", \"albatross\", \"beaver\", \"bw\", \"classic\", \"watercolor\" \n\n\n\n\n\nMultiple small choropleth maps are created by assigning multiple values to at least one of the aesthetic arguments.\n\ntm_shape(mpsz_pop2020)+ \n  tm_polygons(c(\"DEPENDENCY\",\"AGED\"),\n          style = c(\"equal\", \"quantile\"), \n          palette = list(\"Blues\",\"Greens\")) +\n  tm_layout(legend.position = c(\"right\", \"bottom\"))\n\n\n\n\n\n\nDefining A Group-by Variable in tm_facets()\n\ntm_shape(mpsz_pop2020) +\n  tm_fill(\"DEPENDENCY\",\n          style = \"quantile\",\n          palette = \"Blues\",\n          thres.poly = 0) + \n  tm_facets(by=\"REGION_N\", \n            free.coords=TRUE, \n            drop.shapes=TRUE) +\n  tm_layout(legend.show = FALSE,\n            title.position = c(\"center\", \"center\"), \n            title.size = 20) +\n  tm_borders(alpha = 0.5)\n\nWarning: The argument drop.shapes has been renamed to drop.units, and is\ntherefore deprecated\n\n\n\n\n\n\n\nCreate Multiple Stand-alone Maps with tmap_arrange()\n\nyoungmap <- tm_shape(mpsz_pop2020)+ \n  tm_polygons(\"YOUNG\", \n              style = \"quantile\", \n              palette = \"Blues\")\n\nagedmap <- tm_shape(mpsz_pop2020)+ \n  tm_polygons(\"AGED\", \n              style = \"quantile\", \n              palette = \"Blues\")\n\ntmap_arrange(youngmap, agedmap, asp=1, ncol=2)\n\n\n\n\n\n\nMapping Spatial Objecting Meeting Selection Criterion\n\ntm_shape(mpsz_pop2020[mpsz_pop2020$REGION_N==\"CENTRAL REGION\", ])+\n  tm_fill(\"DEPENDENCY\", \n          style = \"quantile\", \n          palette = \"Blues\", \n          legend.hist = TRUE, \n          legend.is.portrait = TRUE,\n          legend.hist.z = 0.1) +\n  tm_layout(legend.outside = TRUE,\n            legend.height = 0.45, \n            legend.width = 5.0,\n            legend.position = c(\"right\", \"bottom\"),\n            frame = FALSE) +\n  tm_borders(alpha = 0.5)\n\nWarning in pre_process_gt(x, interactive = interactive, orig_crs =\ngm$shape.orig_crs): legend.width controls the width of the legend within a map.\nPlease use legend.outside.size to control the width of the outside legend"
   }
 ]
