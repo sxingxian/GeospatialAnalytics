@@ -347,7 +347,7 @@
     "href": "HandsOn_Ex/HandsOn_4/index.html#preparing-lisa-map-classes",
     "title": "Chapter 4. Global and Local Measures of Spatial Autocorrelation",
     "section": "Preparing LISA map classes",
-    "text": "Preparing LISA map classes\nThe following code chunk prepares the LISA cluster maps.\n\nquadrant <- vector(mode=\"numeric\",length=nrow(localMI))\nDV <- hunan$GDPPC - mean(hunan$GDPPC)     \nC_mI <- localMI[,1] - mean(localMI[,1])    \nsignif <- 0.05       \nquadrant[DV >0 & C_mI>0] <- 4      \nquadrant[DV <0 & C_mI<0] <- 1      \nquadrant[DV <0 & C_mI>0] <- 2\nquadrant[DV >0 & C_mI<0] <- 3\n\nThe above code chunk sets the statistical significance level of the local Moran to 0.05 and using the quadrant command line to define 4 different categories, high-high, low-low, low-high, high-low.\nThe following code chunk will place non-significant Moran into category 0.\n\nquadrant[localMI[,5]>signif] <- 0"
+    "text": "Preparing LISA map classes\nThe following code chunk prepares the LISA cluster maps.\n\nquadrant <- vector(mode=\"numeric\",length=nrow(localMI))\nDV <- hunan$GDPPC - mean(hunan$GDPPC)     \nC_mI <- localMI[,1] - mean(localMI[,1])    \nsignif <- 0.05       \nquadrant[DV >0 & C_mI>0] <- 4      \nquadrant[DV <0 & C_mI<0] <- 2      \nquadrant[DV <0 & C_mI>0] <- 1\nquadrant[DV >0 & C_mI<0] <- 3\n\nThe above code chunk sets the statistical significance level of the local Moran to 0.05 and using the quadrant command line to define 4 different categories, high-high, low-low, low-high, high-low.\nThe following code chunk will place non-significant Moran into category 0.\n\nquadrant[localMI[,5]>signif] <- 0"
   },
   {
     "objectID": "HandsOn_Ex/HandsOn_4/index.html#plotting-lisa-map",
@@ -404,5 +404,47 @@
     "title": "Chapter 4. Global and Local Measures of Spatial Autocorrelation",
     "section": "Mapping Gi values with adaptive distance weights",
     "text": "Mapping Gi values with adaptive distance weights\nVisualize the locations of hot spot and cold spot areas. The choropleth mapping functions of tmap package will be used to map the Gi values.\n\ngdppc<- qtm(hunan, \"GDPPC\")\n\nGimap <- tm_shape(hunan.gi) + \n  tm_fill(col = \"gstat_adaptive\", \n          style = \"pretty\", \n          palette=\"-RdBu\", \n          title = \"local Gi\") + \n  tm_borders(alpha = 0.5)\n\ntmap_arrange(gdppc, \n             Gimap, \n             asp=1, \n             ncol=2)\n\nVariable(s) \"gstat_adaptive\" contains positive and negative values, so midpoint is set to 0. Set midpoint = NA to show the full spectrum of the color palette."
+  },
+  {
+    "objectID": "InClass_Ex/InClass_Ex2/index.html",
+    "href": "InClass_Ex/InClass_Ex2/index.html",
+    "title": "In-Class Exercise 2",
+    "section": "",
+    "text": "Water is an important resource to mankind. Clean and accessible water is critical to human health. It provides a healthy environment, a sustainable economy, reduces poverty and ensures peace and security. Yet over 40% of the global population does not have access to sufficient clean water. By 2025, 1.8 billion people will be living in countries or regions with absolute water scarcity, according to UN-Water. The lack of water poses a major threat to several sectors, including food security. Agriculture uses about 70% of the world’s accessible freshwater.\nDeveloping countries are most affected by water shortages and poor water quality. Up to 80% of illnesses in the developing world are linked to inadequate water and sanitation. Despite technological advancement, providing clean water to the rural community is still a major development issues in many countries globally, especially countries in the Africa continent."
+  },
+  {
+    "objectID": "InClass_Ex/InClass_Ex2/index.html#data-acquisition",
+    "href": "InClass_Ex/InClass_Ex2/index.html#data-acquisition",
+    "title": "In-Class Exercise 2",
+    "section": "Data Acquisition",
+    "text": "Data Acquisition\n\nWater Point Data Exchange + (ShapeFile)\ngeoBoundaries"
+  },
+  {
+    "objectID": "InClass_Ex/InClass_Ex2/index.html#importing-data",
+    "href": "InClass_Ex/InClass_Ex2/index.html#importing-data",
+    "title": "In-Class Exercise 2",
+    "section": "Importing Data",
+    "text": "Importing Data\n\nGeospatial Data\nUsing st_read() function of sf package to import the relevant shapefile into R.\n\nwp <- st_read(dsn = \"data/waterpoint\", \n                 layer = \"geo_export\", crs = 4326) %>%\n          filter(clean_coun == \"Nigeria\")\n\nThe following code chunk performs the following tasks:\nwrite_rds() of readr package is used to save the extracted sf data data table into an output file in rds data format.\n\nwp_nga <- write_rds(wp, \"data/waterpoint/wp_nga.rds\")\n\n\nnga <- st_read(dsn = \"data/geoBoundaries\",\n               layer = \"geoBoundaries\",\n               crs = 4326)\n\nReading layer `geoBoundaries' from data source \n  `C:\\Users\\sxing\\OneDrive - Singapore Management University\\ISSS624 Applied Geospatial Analytics\\R\\sxingxian\\GeospatialAnalytics\\InClass_Ex\\InClass_Ex2\\data\\geoBoundaries' \n  using driver `ESRI Shapefile'\nSimple feature collection with 774 features and 5 fields\nGeometry type: MULTIPOLYGON\nDimension:     XY\nBounding box:  xmin: 2.668534 ymin: 4.273007 xmax: 14.67882 ymax: 13.89442\nGeodetic CRS:  WGS 84\n\n\n\nwp_nga <- read_rds(\"data/waterpoint/wp_nga.rds\") %>% \n          mutate(status_cle = replace_na(status_cle, 'unknown'))\n\n\nfreq(data=wp_nga, input = 'status_cle')\n\n\n\n\n                        status_cle frequency percentage cumulative_perc\n1                       Functional     45883      48.29           48.29\n2                   Non-Functional     29385      30.93           79.22\n3                          unknown     10656      11.22           90.44\n4      Functional but needs repair      4579       4.82           95.26\n5 Non-Functional due to dry season      2403       2.53           97.79\n6        Functional but not in use      1686       1.77           99.56\n7         Abandoned/Decommissioned       234       0.25           99.81\n8                        Abandoned       175       0.18           99.99\n9 Non functional due to dry season         7       0.01          100.00\n\n\n\nwpt_functional <- wp_nga %>% \n  filter(status_cle %in% c('Functional', 'Functional but not in use', 'Functional but needs repair'))\n\n\nfreq(data=wpt_functional, input = 'status_cle')\n\n\n\n\n                   status_cle frequency percentage cumulative_perc\n1                  Functional     45883      87.99           87.99\n2 Functional but needs repair      4579       8.78           96.77\n3   Functional but not in use      1686       3.23          100.00\n\n\n\nwpt_nonfunctional <- wp_nga %>% filter(status_cle %in%\n                                        c('Abandoned/Decommission',\n                                          'Abandoned',\n                                          'Non-Functional',\n                                          'Non functional due to dry season', \n                                          'Non-functional due to dry season'))\n\n\nfreq(data=wpt_nonfunctional, input ='status_cle')\n\n\n\n\n                        status_cle frequency percentage cumulative_perc\n1                   Non-Functional     29385      99.38           99.38\n2                        Abandoned       175       0.59           99.97\n3 Non functional due to dry season         7       0.02          100.00\n\n\n\nwpt_unknown <- wp_nga %>% filter(status_cle == \"Unknown\")\n\n\nnga_wp <- nga %>% \n  mutate(`total wpt` = lengths(\n    st_intersects(nga, wp_nga))) %>%\n  mutate(`wpt functional` = lengths(\n    st_intersects(nga, wpt_functional))) %>%\n  mutate(`wpt non-functional` = lengths(\n    st_intersects(nga, wpt_nonfunctional))) %>%\n  mutate(`wpt unknown` = lengths(\n    st_intersects(nga, wpt_unknown)))\n\n\nnga_wp <- nga_wp %>%\n  mutate(pct_functional = `wpt functional`/`total wpt`) %>%\n  mutate(`pct_non-functional` = `wpt non-functional`/`total wpt`) \n\n\nwrite_rds(nga_wp, \"data/geoBoundaries/nga_wp.rds\")\n\n\nnga_wp <- read_rds(\"data/geoBoundaries/nga_wp.rds\")\ntotal <- qtm(nga_wp, \"total wpt\")\nwp_functional <- qtm(nga_wp, \"wpt functional\")\nwp_nonfunctional <- qtm(nga_wp, \"wpt non-functional\")\nunknown <- qtm(nga_wp, \"wpt unknown\")\n\ntmap_arrange(total, wp_functional, wp_nonfunctional, unknown, asp=1, ncol=2)"
+  },
+  {
+    "objectID": "TakeHome_Ex/TH_Ex1/index.html",
+    "href": "TakeHome_Ex/TH_Ex1/index.html",
+    "title": "Geospatial Analytics for Social Good",
+    "section": "",
+    "text": "Water is an important resource to mankind. Clean and accessible water is critical to human health. It provides a healthy environment, a sustainable economy, reduces poverty and ensures peace and security. Yet over 40% of the global population does not have access to sufficient clean water. By 2025, 1.8 billion people will be living in countries or regions with absolute water scarcity, according to UN-Water. The lack of water poses a major threat to several sectors, including food security. Agriculture uses about 70% of the world’s accessible freshwater.\nDeveloping countries are most affected by water shortages and poor water quality. Up to 80% of illnesses in the developing world are linked to inadequate water and sanitation. Despite technological advancement, providing clean water to the rural community is still a major development issues in many countries globally, especially countries in the Africa continent."
+  },
+  {
+    "objectID": "TakeHome_Ex/TH_Ex1/index.html#data-acquisition",
+    "href": "TakeHome_Ex/TH_Ex1/index.html#data-acquisition",
+    "title": "Geospatial Analytics for Social Good",
+    "section": "Data Acquisition",
+    "text": "Data Acquisition\n\nWater Point Data Exchange + (ShapeFile)\ngeoBoundaries"
+  },
+  {
+    "objectID": "TakeHome_Ex/TH_Ex1/index.html#importing-data",
+    "href": "TakeHome_Ex/TH_Ex1/index.html#importing-data",
+    "title": "Geospatial Analytics for Social Good",
+    "section": "Importing Data",
+    "text": "Importing Data\n\nGeospatial Data\nUsing st_read() function of sf package to import the relevant shapefile into R."
   }
 ]
