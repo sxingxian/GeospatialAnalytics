@@ -1,0 +1,138 @@
+---
+title: "In-Class Exercise 2"
+execute:
+  warning: false
+  message: false
+editor: visual
+---
+
+# The Study
+
+Water is an important resource to mankind. Clean and accessible water is critical to human health. It provides a healthy environment, a sustainable economy, reduces poverty and ensures peace and security. Yet over 40% of the global population does not have access to sufficient clean water. By 2025, 1.8 billion people will be living in countries or regions with absolute water scarcity, according to UN-Water. The lack of water poses a major threat to several sectors, including food security. Agriculture uses about 70% of the world's accessible freshwater.
+
+Developing countries are most affected by water shortages and poor water quality. Up to 80% of illnesses in the developing world are linked to inadequate water and sanitation. Despite technological advancement, providing clean water to the rural community is still a major development issues in many countries globally, especially countries in the Africa continent.
+
+# Initialization
+
+Initialize the following packages using pacman:
+
+```{r}
+pacman::p_load(sf, spdep, tmap, tidyverse, funModeling)
+
+```
+
+The above R packages will be used for this hands-on exercise:
+
+-   sf - handling geospatial data and save it as simple feature variables
+
+-   tidyverse - use for wrangling attribute data in R
+
+-   spdep - use to compute spatial weights, global and local spatial auto-correlation statistics
+
+-   tmap - use for preparing cartographic quality choroplth map
+
+-   funModeling - allows quick exploratory data analysis (EDA)
+
+# Data Acquisition and Import
+
+## Data Acquisition
+
+-   [Water Point Data Exchange +](https://data.waterpointdata.org/dataset/Water-Point-Data-Exchange-Plus-WPdx-/eqje-vguj/data "Water Point Data Exchange +") (ShapeFile)
+
+-   [geoBoundaries](https://www.geoboundaries.org/index.html#getdata "geoBoundaries")
+
+## Importing Data
+
+### Geospatial Data
+
+Using st_read() function of sf package to import the relevant shapefile into R.
+
+```{r}
+#| eval: false
+wp <- st_read(dsn = "data/waterpoint", 
+                 layer = "geo_export", crs = 4326) %>%
+          filter(clean_coun == "Nigeria")
+
+```
+
+The following code chunk performs the following tasks:
+
+`write_rds()` of readr package is used to save the extracted sf data data table into an output file in rds data format.
+
+```{r}
+#| eval: false
+wp_nga <- write_rds(wp, "data/waterpoint/wp_nga.rds")
+```
+
+```{r}
+nga <- st_read(dsn = "data/geoBoundaries",
+               layer = "geoBoundaries",
+               crs = 4326)
+```
+
+```{r}
+wp_nga <- read_rds("data/waterpoint/wp_nga.rds") %>% 
+          mutate(status_cle = replace_na(status_cle, 'unknown'))
+```
+
+```{r}
+freq(data=wp_nga, input = 'status_cle')
+```
+
+```{r}
+wpt_functional <- wp_nga %>% 
+  filter(status_cle %in% c('Functional', 'Functional but not in use', 'Functional but needs repair'))
+```
+
+```{r}
+freq(data=wpt_functional, input = 'status_cle')
+```
+
+```{r}
+wpt_nonfunctional <- wp_nga %>% filter(status_cle %in%
+                                        c('Abandoned/Decommission',
+                                          'Abandoned',
+                                          'Non-Functional',
+                                          'Non functional due to dry season', 
+                                          'Non-functional due to dry season'))
+```
+
+```{r}
+freq(data=wpt_nonfunctional, input ='status_cle')
+```
+
+```{r}
+wpt_unknown <- wp_nga %>% filter(status_cle == "Unknown")
+```
+
+```{r}
+nga_wp <- nga %>% 
+  mutate(`total wpt` = lengths(
+    st_intersects(nga, wp_nga))) %>%
+  mutate(`wpt functional` = lengths(
+    st_intersects(nga, wpt_functional))) %>%
+  mutate(`wpt non-functional` = lengths(
+    st_intersects(nga, wpt_nonfunctional))) %>%
+  mutate(`wpt unknown` = lengths(
+    st_intersects(nga, wpt_unknown)))
+```
+
+```{r}
+nga_wp <- nga_wp %>%
+  mutate(pct_functional = `wpt functional`/`total wpt`) %>%
+  mutate(`pct_non-functional` = `wpt non-functional`/`total wpt`) 
+```
+
+```{r}
+write_rds(nga_wp, "data/geoBoundaries/nga_wp.rds")
+```
+
+```{r}
+nga_wp <- read_rds("data/geoBoundaries/nga_wp.rds")
+total <- qtm(nga_wp, "total wpt")
+wp_functional <- qtm(nga_wp, "wpt functional")
+wp_nonfunctional <- qtm(nga_wp, "wpt non-functional")
+unknown <- qtm(nga_wp, "wpt unknown")
+
+tmap_arrange(total, wp_functional, wp_nonfunctional, unknown, asp=1, ncol=2)
+```
