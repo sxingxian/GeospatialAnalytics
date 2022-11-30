@@ -3,7 +3,7 @@ title: "Geospatial Analytics for Social Good"
 execute:
   warning: false
   message: false
-  echo: false
+  code-fold: true
 editor: visual
 ---
 
@@ -45,7 +45,7 @@ The above R packages will be used for this hands-on exercise:
 ## Data Acquisition
 
 | Type                               | Name                                                                                                                                                     | Format(s) | Description                                                              |
-|------------------|------------------|------------------|-------------------|
+|------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|--------------------------------------------------------------------------|
 | Aspatial                           | [Water Point Data Exchange +](https://data.waterpointdata.org/dataset/Water-Point-Data-Exchange-Plus-WPdx-/eqje-vguj/data "Water Point Data Exchange +") | Shapefile | Global data repositories for water points                                |
 | Geospatial                         | [geoBoundaries](https://www.geoboundaries.org/index.html#getdata "geoBoundaries")                                                                        |           | UN OCHA CODs (Humanitarian) and UN SALB (Authoritative) data for Nigeria |
 | Geospatial - Alternate Data source | [Humanitarian Data Exchange portal](https://data.humdata.org/ "Humanitarian Data Exchange portal")                                                       |           | Humanitarian data                                                        |
