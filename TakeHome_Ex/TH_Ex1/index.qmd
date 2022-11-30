@@ -1,0 +1,1029 @@
+---
+title: "Geospatial Analytics for Social Good"
+execute:
+  warning: false
+  message: false
+  echo: false
+editor: visual
+---
+
+# The Study
+
+Water is an important resource to mankind. Clean and accessible water is critical to human health. It provides a healthy environment, a sustainable economy, reduces poverty and ensures peace and security. Yet over 40% of the global population does not have access to sufficient clean water. By 2025, 1.8 billion people will be living in countries or regions with absolute water scarcity, according to UN-Water. The lack of water poses a major threat to several sectors, including food security. Agriculture uses about 70% of the world's accessible freshwater.
+
+Developing countries are most affected by water shortages and poor water quality. Up to 80% of illnesses in the developing world are linked to inadequate water and sanitation. Despite technological advancement, providing clean water to the rural community is still a major development issues in many countries globally, especially countries in the Africa continent.
+
+# Objective
+
+Geospatial analytics hold tremendous potential to address complex problems facing society. In this study, we are tasked to apply appropriate global and local measures of spatial Association techniques to reveals the spatial patterns of ***Non-Functional*** water points.
+
+We will use Nigeria as the country for our study point.
+
+# Setup
+
+## Packages
+
+Initialize the following packages using pacman:
+
+```{r}
+pacman::p_load(sf, spdep, tmap, tidyverse, funModeling, htmlwidgets, plotly, dplyr)
+
+```
+
+The above R packages will be used for this hands-on exercise:
+
+-   sf - handling geospatial data and save it as simple feature variables
+
+-   tidyverse - use for wrangling attribute data in R
+
+-   spdep - use to compute spatial weights, global and local spatial auto-correlation statistics
+
+-   tmap - use for preparing cartographic quality choroplth map
+
+-   funModeling - allows quick exploratory data analysis (EDA)
+
+## Data Acquisition
+
+| Type                               | Name                                                                                                                                                     | Format(s) | Description                                                              |
+|------------------|------------------|------------------|-------------------|
+| Aspatial                           | [Water Point Data Exchange +](https://data.waterpointdata.org/dataset/Water-Point-Data-Exchange-Plus-WPdx-/eqje-vguj/data "Water Point Data Exchange +") | Shapefile | Global data repositories for water points                                |
+| Geospatial                         | [geoBoundaries](https://www.geoboundaries.org/index.html#getdata "geoBoundaries")                                                                        |           | UN OCHA CODs (Humanitarian) and UN SALB (Authoritative) data for Nigeria |
+| Geospatial - Alternate Data source | [Humanitarian Data Exchange portal](https://data.humdata.org/ "Humanitarian Data Exchange portal")                                                       |           | Humanitarian data                                                        |
+
+: Dataset
+
+In this study, we will be using dataset from both *Water Point Data Exchange* and *geoBoundaries*. The dataset from *Humanitarian Data Exchange Portal* can be used as well.
+
+# Data Wrangling: Aspatial Data
+
+## Importing Waterpoint Data
+
+Using `st_read()` function of sf package to import the relevant shapefile into R.
+
+```{r}
+#| eval: false
+wp <- st_read(dsn = "data/waterpoint", 
+                 layer = "geo_export", crs = 4326) %>%
+          filter(clean_coun == "Nigeria")
+
+```
+
+The following code chunk performs the following tasks:
+
+`write_rds()` of readr package is used to save the extracted sf data data table into an output file in rds data format.
+
+```{r}
+#| eval: false
+write_rds(wp, "data/waterpoint/wp_nga.rds")
+```
+
+Recode all *NA* values in *status_cle* field into *unknown*.
+
+```{r}
+wp_nga <- read_rds("data/waterpoint/wp_nga.rds") %>% 
+          mutate(status_cle = replace_na(status_cle, 'unknown'))
+```
+
+Get a glimpse of the associated attribute information in the dataframe.
+
+```{r}
+glimpse(wp_nga)
+```
+
+### Year Extraction From Date Report
+
+We will be extracting the number of
+
+```{r}
+wp_nga['Year'] = format(wp_nga['date_repor'], format="%Y")
+```
+
+Get the list of unique years.
+
+```{r}
+
+unique(sort(wp_nga$Year))
+```
+
+There data points from 2010, 2013-2016, 2018-2022 as shown above. However, we will only look at the combined data for this study.
+
+```{r}
+freq(data=wp_nga, input = 'status_cle')
+```
+
+Get data from year 2013-2016 and 2018-2022
+
+```{r}
+wp_nga2013 <- wp_nga %>% 
+  filter(Year %in% c("2013", "2014", "2015", "2016" ))
+
+wp_nga2018 <- wp_nga %>% 
+  filter(Year %in% c("2018", "2019", "2020", "2021", "2022"))
+```
+
+### Functional Waterpoint in Nigeria
+
+```{r}
+wpt_functional <- wp_nga %>% 
+  filter(status_cle %in% c('Functional', 'Functional but not in use', 'Functional but needs repair'))
+```
+
+Let's explore the data using the *funModeling* package `freq()` function. This will show the distribution of the *status_cle* field in the *wp_nga* dataframe.
+
+```{r}
+freq(data=wpt_functional, input = 'status_cle')
+```
+
+```{r}
+wpt_functional2013 <- wpt_functional %>% 
+  filter(Year %in% c("2013", "2014", "2015", "2016" ))
+
+wpt_functional2018 <- wpt_functional %>% 
+  filter(Year %in% c("2018", "2019", "2020", "2021", "2022"))
+```
+
+### Non-Functional Waterpoint in Nigeria
+
+```{r}
+wpt_nonfunctional <- wp_nga %>% filter(status_cle %in%
+                                        c('Abandoned/Decommission',
+                                          'Abandoned',
+                                          'Non-Functional',
+                                          'Non functional due to dry season', 
+                                          'Non-functional due to dry season'))
+```
+
+```{r}
+freq(data=wpt_nonfunctional, input ='status_cle')
+```
+
+```{r}
+wpt_nonfunctional2013 <- wpt_nonfunctional %>% 
+  filter(Year %in% c("2013", "2014", "2015", "2016" ))
+
+wpt_nonfunctional2018 <- wpt_nonfunctional %>% 
+  filter(Year %in% c("2018", "2019", "2020", "2021", "2022"))
+```
+
+### Unknown Waterpoint in Nigeria
+
+```{r}
+wpt_unknown <- wp_nga %>% filter(status_cle == "unknown")
+```
+
+```{r}
+freq(data=wpt_unknown, input ='status_cle')
+```
+
+```{r}
+wpt_unknown2013 <- wpt_unknown %>% 
+  filter(Year %in% c("2013", "2014", "2015", "2016" ))
+
+wpt_unknown2018 <- wpt_unknown %>% 
+  filter(Year %in% c("2018", "2019", "2020", "2021", "2022"))
+```
+
+# Data Wrangling: Geospatial Data
+
+Before we use the dataset, we should ensure that the relevant or necessary data is being used by the study. In addition, we should also check for any duplicated data or incorrect datatype.
+
+## Import Nigeria Level-2 Administrative Boundary
+
+The dataset contains the level 2 administrative boundary, which is also known as the Local Government Area. `st_read()` function will be used to import in with *crs* attribute set to 4326.
+
+```{r}
+nga <- st_read(dsn = "data/geoBoundaries",
+               layer = "geoBoundaries",
+               crs = 4326)
+```
+
+A glimpse of the geoBoundary dataset.
+
+```{r}
+glimpse(nga)
+```
+
+```{r}
+nga.ordered <- (nga[order(nga$shapeName), ])
+
+dup.data <- nga$shapeName[ nga$shapeName %in% nga$shapeName[duplicated(nga$shapeName)] ]
+
+dup.data
+```
+
+As shown above, we have identified several regions in Nigeria have the same name, however, the location on the map is different.
+
+```{r}
+tmap_mode("view")
+
+tm_shape(nga[nga$shapeName %in% dup.data,]) +
+  tm_polygons(col = "lightblue")
+```
+
+After plotting them out, we can determine that they are different area in Nigeria. We will need to rename them appropriately. The actual name of these locations are as follows:
+
+```{r}
+nga.dup.id <- nga[nga$shapeName %in% dup.data,]
+nga.dup.id
+```
+
+Based on the code chunk above to get the row index number to change its value. Using the following code chunk to amend the data with respect to the correct name.
+
+`row.names()` is being used to get the the identifier of the duplicated rows.
+
+```{r}
+nga$shapeName[as.numeric(row.names(nga.dup.id))] <- c("Bassa (Kogi)","Bassa (Plateau)","Ifelodun (Kwara)","Ifelodun (Osun)","Irepodun (Kwara)","Irepodun (Osun)","Nassarawa","Obi (Benue)","Obi(Nasarawa)","Surulere (Lagos)","Surulere (Oyo)")
+
+length((nga$shapeName[ nga$shapeName %in% nga$shapeName[duplicated(nga$shapeName)] ]))
+```
+
+# Geospatial Data Integration
+
+```{r}
+nga_wp.integrate <- nga %>% 
+  mutate(`total wpt` = lengths(
+    st_intersects(nga, wp_nga))) %>%
+  mutate(`wpt functional` = lengths(
+    st_intersects(nga, wpt_functional))) %>%
+  mutate(`wpt non-functional` = lengths(
+    st_intersects(nga, wpt_nonfunctional))) %>%
+  mutate(`wpt unknown` = lengths(
+    st_intersects(nga, wpt_unknown)))
+```
+
+```{r}
+nga_wp.integrate <- nga_wp.integrate %>%
+  mutate(pct_functional = `wpt functional`/`total wpt`) %>%
+  mutate(`pct_non-functional` = `wpt non-functional`/`total wpt`) 
+```
+
+Saving the dataset after integrating
+
+```{r}
+#| eval: false
+write_rds(nga_wp.integrate, "data/geoBoundaries/nga_wp.rds")
+```
+
+Read the files after saving the integration by using the `read_rds()` function.
+
+```{r}
+nga_wp <- read_rds("data/geoBoundaries/nga_wp.rds")
+```
+
+```{r}
+glimpse(nga_wp)
+```
+
+# Visualization
+
+Let us explore the total waterpoint in Nigeria by using the *tmap* package. We can use either *plot* or *view* to toggle the interactivity of the tmap by adding `tmap_mode()` in each of the code chunk.
+
+```{r}
+tmap_mode("plot")
+
+nga.overall.map <- tm_shape(nga_wp)+
+  tm_fill("total wpt", 
+          style = "quantile", 
+          palette = "Greens",
+          title = "Total Waterpoints") +
+  tm_layout(main.title = "Distribution of the total waterpoints in Nigeria",
+            main.title.position = "center",
+            main.title.size = 1.2,
+            legend.height = 0.45, 
+            legend.width = 0.35,
+            frame = TRUE) +
+  tm_borders(alpha = 0.5) +
+  tm_compass(type="8star", size = 2) +
+  tm_scale_bar(width = 0.15) +
+  tm_grid(lwd = 0.1, alpha = 0.2) +
+  tm_credits("Source: Planning Sub-zone boundary from Urban Redevelopment Authorithy (URA)\n and Population data from Department of Statistics DOS", 
+             position = c("left", "bottom"))
+
+nga.overall.map
+```
+
+Based on the above Nigeria map, we are able to see that the regions in the middle of Nigeria contains most waterpoints (regardless if it's functional or non-functional). We are interested to find out the number of functional and non-functional waterpoints.
+
+```{r}
+tmap_mode("view")
+
+nga.wp.functionalmap <- tm_shape(nga_wp) +
+    tm_polygons("total wpt", palette="Pastel1", contrast=1, id="name", title="Total Waterpoint") + 
+    tm_bubbles("wpt functional", col = "wpt functional", 
+                 border.col = "black", border.alpha = .5, 
+                 style="fixed", breaks=c(-Inf, seq(0, 6, by=2), Inf),
+                 palette="seq", contrast=1, 
+                 title.size="wpt functional", 
+                 title.col="Functional Waterpoints", id="name") +
+    tm_style("grey") + tm_format("World_wide") +
+    tm_layout(aes.palette = list(seq = "YlGn"))
+
+nga.wp.nonfunctionalmap <- tm_shape(nga_wp) +
+    tm_polygons("total wpt", palette="Pastel1", contrast=1, id="name", title="Total Waterpoint") + 
+    tm_bubbles("wpt non-functional", col = "wpt non-functional", 
+                 border.col = "black", border.alpha = .5, 
+                 style="fixed", breaks=c(-Inf, seq(0, 6, by=2), Inf),
+                 palette="seq", contrast=1, 
+                 title.size="wpt non-functional", 
+                 title.col="Non-functional Waterpoints", id="name") +
+    tm_style("grey") + tm_format("World_wide") +
+    tm_layout(aes.palette = list(seq = "YlGn"))
+
+
+
+tmap_arrange(nga.wp.functionalmap, nga.wp.nonfunctionalmap, asp=1, ncol=2)
+
+
+```
+
+Comparing the functional and non-functional waterpoints, it is clear that there are a lot more non-functional waterpoints in the lower parts of Nigeria, and there are many functional waterpoints at the upper parts of Nigeria. It is worrisome when there are so many non-functional waterpoints in regions where there are only a minimum of 1 and maximum of 200 total waterpoints.
+
+# Computing Contiguity Based Neighbors
+
+## QUEEN Contiguity Weight Matrix
+
+```{r}
+
+nga_wp.nonfunctional <- nga_wp %>% select(1:6, 9, 12)
+
+wm_q <- poly2nb(nga_wp.nonfunctional, queen=TRUE)
+summary.wm_q <- summary(wm_q)
+```
+
+Using the *QUEEN* contiguity weight matrix, its result shows that there are a total number of 774 regions with the most connected region having 14 links, while 2 regions only have 1 neighbor.
+
+```{r}
+nga_wp.nonfunctional$shapeName[1]
+wm_q[[1]]
+
+```
+
+```{r}
+nga_wp.nonfunctional$shapeName[c(2, 548, 624, 721)]
+
+```
+
+By using the above code chunk, we can find out the neighbors for each region. We are interested to find out the complete weight matrix by using *str()*.
+
+```{r}
+str(wm_q)
+```
+
+## ROOK Contiguity Based Neighbors
+
+```{r}
+
+wm_r <- poly2nb(nga_wp.nonfunctional, queen=FALSE)
+summary.wm_r <- summary(wm_r)
+```
+
+Using the *ROOK* contiguity weight matrix, its result shows that there are a total number of 774 regions with the most connected region having 14 links, while 2 regions only have 1 neighbor. This is similar to using *QUEEN* contiguity weight matrix.
+
+Since both have the same results, we can use either one of the weight matrix to plot out the visualization.
+
+```{r}
+longitude <- map_dbl(nga_wp.nonfunctional$geometry, ~st_centroid(.x)[[1]])
+latitude <- map_dbl(nga_wp.nonfunctional$geometry, ~st_centroid(.x)[[2]])
+coords <- cbind(longitude, latitude)
+
+```
+
+After combining both longitude and latitude, we are interested to check on a few observations to see if things are formatted correctly.
+
+```{r}
+head(coords)
+
+```
+
+Merge the coordinates back to data frame.
+
+```{r}
+nga_wp.nonfunctional['coords'] <- coords
+nga_wp.nonfunctional['long'] <- longitude
+nga_wp.nonfunctional['lat'] <- latitude
+colnames(nga_wp.nonfunctional)
+```
+
+## Weight Matrix Visualization
+
+Let's take a look at the plotted weight matrix for both QUEEN and ROOK.
+
+```{r}
+par(mfrow=c(1,2))
+plot(nga_wp.nonfunctional$geometry, border="lightgrey", main="Queen Contiguity")
+plot(wm_q, coords, pch = 19, cex = 0.6, add = TRUE, col= "red")
+
+plot(nga_wp.nonfunctional$geometry, border="lightgrey", main="Rook Contiguity")
+plot(wm_r, coords, pch = 19, cex = 0.6, add = TRUE, col = "red")
+```
+
+# Computing Distance Based Neighbors
+
+The function identifies neighbours of region points by Euclidean distance with a distance band with lower d1= and upper d2= bounds controlled by the bounds= argument. If unprojected coordinates are used and either specified in the coordinates object x or with x as a two column matrix and longlat=TRUE, great circle distances in **km** will be calculated assuming the WGS84 reference ellipsoid.
+
+## Determine The Cut-off Distance
+
+Get the upper limit for distance band by using `knearneigh()` of spdep package. It will return a matrix with the indices of points belonging to the set of k nearest neighbors of each other.
+
+```{r}
+k1 <- knn2nb(knearneigh(coords))
+k1dists <- unlist(nbdists(k1, coords, longlat = TRUE))
+summary(k1dists)
+```
+
+Based on the result, it shows that the largest first nearest neighbor distance is 71.66KM. With this value, we will set it as the upper threshold to give certainty that all units will have at least one neighbor.
+
+## Computing Fixed Distance Weight Matrix
+
+We will compute the distance weight matrix by using *dnearneigh()* as shown in the code chunk below.
+
+```{r}
+wm_d72 <- dnearneigh(coords, 0, max(k1dists), longlat = TRUE)
+wm_d72
+```
+
+It shows that there is an average of 23 links in a total of 774 regions.
+
+## Fixed Distance Visualization
+
+We plot the fixed distance visualization of the areas with their respective neighbors after assignment based on the various methods. The following graph shows the links of neighbors within the cut-off distance of the above threshold.
+
+```{r}
+plot(nga_wp.nonfunctional$geometry, border="lightgrey", main="Fixed Distance")
+plot(wm_d72, coords, add=TRUE)
+plot(k1, coords, add=TRUE, col="red", length=0.08)
+```
+
+# Computing Adaptive Distance Weight Matrix
+
+One of the characteristics of fixed distance weight matrix is that more densely settled areas (usually the urban areas) tend to have more neighbours and the less densely settled areas (usually the rural counties) tend to have lesser neighbours. Having many neighbours smoothes the neighbour relationship across more neighbours.
+
+It is possible to control the numbers of neighbours directly using k-nearest neighbours, either accepting asymmetric neighbours or imposing symmetry. Since there is no specific methods can be used to determine the number of neighbors used for adaptive distance, and based on the basic statistical property such as for small sample test, the value of k can be ranged from 8 to 15.
+
+We will take a look at the result when k is 8:15.
+
+```{r}
+
+loop.i <- 8:15
+loop.list <- list()
+
+for (i in loop.i) {
+  knn <- knn2nb(knearneigh(coords, k=i))
+  loop.list[[i]] <- knn 
+}
+
+loop.list[loop.i]
+```
+
+The higher the k value, the larger its nonzero links, with k=15 having a total of 11610.
+
+## Plotting Distance Based Neighbors
+
+```{r}
+
+par(mfrow=c(1,2))
+
+for (i in loop.i){
+  title <- paste0("Adaptive Distance (k = ", i, ")")
+  plot(nga_wp.nonfunctional$geometry, border="lightgrey", main = title)
+  plot(loop.list[[i]], coords, pch = 19, cex = 0.6, add = TRUE, col = "red")
+}
+```
+
+The larger its nonzero links, the more surface area is behind covered by the red lines. We can also conclude that the larger the k value, the larger the percentage of the nonzero links.
+
+# Row-standardized Weights Matrix
+
+## Spatial lag with row-standardized weights
+
+```{r}
+dist <- nbdists(wm_q, coords, longlat = TRUE)
+ids <- lapply(dist, function(x) 1/(x))
+ids
+
+```
+
+Setting zero policy option to *True* will permit the weights list to be formed with zero-length weights vectors.
+
+```{r}
+set.ZeroPolicyOption(TRUE)
+
+rswm_q <- nb2listw(wm_q, style="W", zero.policy = TRUE)
+rswm_q
+```
+
+```{r}
+summary(unlist(rswm_q$weights))
+```
+
+```{r}
+rswm_ids <- nb2listw(wm_q, glist=ids, style="B", zero.policy=TRUE)
+rswm_ids
+
+```
+
+```{r}
+summary(unlist(rswm_ids$weights))
+```
+
+# Application of Spatial Weight Matrix
+
+## Spatial lag with row-standardized weights
+
+Compute the average neighbor value for each polygon
+
+```{r}
+GDPPC.lag <- lag.listw(rswm_q, nga_wp$`wpt non-functional`)
+GDPPC.lag
+```
+
+Append the spatially lag values onto the waterpoint sf data frame by using the following code chunk.
+
+```{r}
+lag.list <- list(nga_wp.nonfunctional$shapeName, lag.listw(rswm_q, nga_wp$`wpt non-functional`))
+lag.res <- as.data.frame(lag.list)
+colnames(lag.res) <- c("shapeName", "lag wpt")
+nga_wp.nonfunctional.lag <- left_join(nga_wp.nonfunctional,lag.res)
+```
+
+```{r}
+tmap_mode("view")
+
+nga.spatial.wp <- tm_shape(nga_wp.nonfunctional.lag) +
+    tm_polygons("wpt non-functional", palette="Pastel1", contrast=1, id="name", title="Non-functional Waterpoint") +
+    tm_style("grey") + tm_format("World_wide") +
+    tm_layout(aes.palette = list(seq = "YlGn"))
+
+nga.spatial.wp.lag <- tm_shape(nga_wp.nonfunctional.lag) +
+    tm_polygons("lag wpt", palette="Pastel1", contrast=1, id="name", title="Lag Non-functional Waterpoint") +
+    tm_style("grey") + tm_format("World_wide") +
+    tm_layout(aes.palette = list(seq = "YlGn"))
+
+
+tmap_arrange(nga.spatial.wp, nga.spatial.wp.lag, asp=1, ncol=2)
+```
+
+## Spatial window average
+
+The spatial window average uses row-standardized weights and includes the diagonal element. To do this in R, we need to go back to the neighbors structure and add the diagonal element before assigning weights.
+
+Using the *include.self()* from spdep to add diagonal element to the neighbor list.
+
+```{r}
+wm_qs <- include.self(wm_q)
+wm_qs
+```
+
+The number of nonzero links shown above is 5214, with percentage of 0.87 and average of 6.7 as compared to *wm_q* the respective values of 4440, 0.74 and 5.736
+
+Let us obtain the weights using *nb2listw()*.
+
+```{r}
+wm_qs <- nb2listw(wm_qs)
+wm_qs
+```
+
+By using *nb2listw()* and *glist()*, we are explicitly assigning weight values. We need to create the lag variable from our weight structure and the non-functional waterpoint.
+
+```{r}
+lag_w_avg_gpdpc <- lag.listw(wm_qs, 
+                             nga_wp.nonfunctional$`wpt non-functional`)
+lag_w_avg_gpdpc
+```
+
+The lag variable listw object will be converted into a data frame by using *as.data.frame()*, and join it back to the other data frame, *nga_wp.nonfunctional*.
+
+```{r}
+lag.list.wm_qs <- list(nga_wp.nonfunctional$shapeName, lag.listw(wm_qs, nga_wp.nonfunctional$`wpt non-functional`))
+lag_wm_qs.res <- as.data.frame(lag.list.wm_qs)
+colnames(lag_wm_qs.res) <- c("shapeName", "lag_window_avg wp")
+```
+
+```{r}
+nga_wp.nonfunctional.winavg <- left_join(nga_wp.nonfunctional.lag, lag_wm_qs.res)
+```
+
+```{r}
+
+tmap_mode("view")
+
+nga.spatial.wp.avg <- tm_shape(nga_wp.nonfunctional.winavg) +
+    tm_polygons("wpt non-functional", palette="Pastel1", contrast=1, id="name", title="Non-functional Waterpoint") +
+    tm_style("grey") + tm_format("World_wide") +
+    tm_layout(aes.palette = list(seq = "YlGn"))
+
+tmap_arrange(nga.spatial.wp.lag, nga.spatial.wp.avg, asp=1, ncol=2)
+```
+
+# Global Spatial Autocorrelation
+
+## Moran's I Test
+
+Using *moran.test()* of spdep package to perform Maron's I statistical testing.
+
+```{r}
+moran.test(nga_wp.nonfunctional$`wpt non-functional`, 
+           listw=rswm_q, 
+           zero.policy = TRUE, 
+           na.action=na.omit)
+```
+
+Based on the Maron's I Test above, the statistical test result shows that it is greater than 0, hence it is clustered and observation tends to be similar.
+
+## Computing Monte Carlo Moran's I
+
+By using *moran.mc()* we will be able to perform permutation test for Moran's I statistic. We are interested to get 1000 simulation, taking note that it starts from 0, hence in the following code check, the number to put in is 999 to archive 1000 simulations.
+
+```{r}
+set.seed(1234)
+bperm= moran.mc(nga_wp.nonfunctional$`wpt non-functional`, 
+                listw=rswm_q, 
+                nsim=999, 
+                zero.policy = TRUE, 
+                na.action=na.omit)
+bperm
+```
+
+Based on the statistical evidence, we can accept the alternative hypothesis. We are interested to find out the summary of Moran's I statistical test.
+
+```{r}
+bperm.mean <- mean(bperm$res[1:999])
+bperm.mean
+```
+
+```{r}
+summary(bperm$res[1:999])
+```
+
+The statistical figures shown above for Monte Carlo Moran's I test tells us that the mean value is -0.0003, with a maximum of 0.074882.
+
+## Plotting Monte Carlo Moran's I
+
+Let us examine the simulated Moran's I test statistics in greater detail by plotting the distribution of the statistical values.
+
+```{r}
+monte_carlo <- as.data.frame(bperm[7])
+
+ggplot(monte_carlo, aes(x=res)) + 
+  geom_density(fill='orange') +
+  geom_vline(aes(xintercept=bperm.mean),
+            color="red", linetype="dotted", size=1) +
+  labs(title = "Monte Carlo Simulation of Moran's I", x = "Test Statistic", y = "Density") +
+  theme_minimal() 
+```
+
+## Geary's C Test
+
+Using *geary.test()* of spdep package, we will be able to perform Geary's C statistics testing.
+
+```{r}
+geary.test(nga_wp.nonfunctional$`wpt non-functional`, listw=rswm_q)
+```
+
+Based on the above statistical evidence, Geary's C statistic is more than 0, hence it is dispersed, observation tends to be different. While looking at the p-value of less than the alpha value of 0.05, hence reject the null hypothesis.
+
+## Computing Monte Carlo Geary's C
+
+```{r}
+set.seed(1234)
+bperm=geary.mc(nga_wp.nonfunctional$`wpt non-functional`, 
+               listw=rswm_q, 
+               nsim=999)
+bperm
+```
+
+The statistical evidence shown above that the alternative hypothesis is accepted. We are interested to find out the summary of Geary's C statistical test.
+
+```{r}
+bperm.mean <- mean(bperm$res[1:999])
+bperm.mean
+```
+
+```{r}
+summary(bperm$res[1:999])
+```
+
+The statistical figures shown above for Monte Carlo Geary's C test tells us that the mean value is 0.9982, with a maximum of 1.0753
+
+## Plotting Monte Carlo Geary's C
+
+```{r}
+monte_carlo <- as.data.frame(bperm[7])
+
+ggplot(monte_carlo, aes(x=res)) + 
+  geom_density(fill='orange') +
+  geom_vline(aes(xintercept=bperm.mean),
+            color="red", linetype="dotted", size=1) +
+  labs(title = "Monte Carlo Simulation of Geary's C", x = "Test Statistic", y = "Density") +
+  theme_minimal() 
+```
+
+# Spatial Correlogram
+
+Spatial correlograms are great to examine patterns of spatial autocorrelation in the data set. The result shows how correlated the pairs of spatial observations when the distance (lag) between them increases.
+
+## Compute Moran's I Correlogram
+
+```{r}
+MI_corr <- sp.correlogram(wm_q, 
+                          nga_wp$`wpt non-functional`, 
+                          order=6, 
+                          method="I", 
+                          style="W")
+plot(MI_corr, main= "Moran's I Correlogram")
+```
+
+Based on the plot above, the lags decreases in Moran's I value as the lag value increases. However, all 6 lags have positive autocorrelation. Even with the plot shown above might not give us a complete interpretation as all autocorrelation values are statistically significant. It is important to examine the complete analysis report.
+
+```{r}
+print(MI_corr)
+```
+
+## Computer Geary's C Correlogram and Plot
+
+`sp.correlogram()` of spdep package is used to compute a 6-lag spatial correlogram. Using *plot()* of base graph to plot the output.
+
+```{r}
+GC_corr <- sp.correlogram(wm_q, 
+                          nga_wp$`wpt non-functional`, 
+                          order=6, 
+                          method="C", 
+                          style="W")
+plot(GC_corr, main = "Geary's C Correlogram")
+```
+
+Based on the plot above, lags 1 to 6 have positive autocorrelation with lag 6 half way above Geary's C value of 1.0. At lag 6, it is around the value of 1.0, observations could be arranged randomly over space. Even with the plot shown above might not give us a complete interpretation as all autocorrelation values are statistically significant. It is important to examine the complete analysis report.
+
+```{r}
+print(GC_corr)
+```
+
+# Cluster and Outlier
+
+We are interested to find out the cluster and outlier of the non-functional waterpoints in Nigeria.
+
+```{r}
+fips <- order(nga_wp.nonfunctional$shapeName)
+localMI <- localmoran(nga_wp$`wpt non-functional`, rswm_q)
+head(localMI)
+```
+
+*localmoran()* function returns a matrix of values whose columns are:
+
+-   Ii: the local Moran's I statistics
+
+-   E.Ii: the expectation of local moran statistic under the randomisation hypothesis
+
+-   Var.Ii: the variance of local moran statistic under the randomisation hypothesis
+
+-   Z.Ii:the standard deviate of local moran statistic
+
+-   Pr(): the p-value of local moran statistic
+
+We are interested to find out the entire list of the local Moran matrix. This can be achieved by using *printCoefmat()*.
+
+```{r}
+
+nga_wp.nonfunctional.dup <- nga_wp.nonfunctional
+
+
+
+printCoefmat(data.frame(
+  localMI[fips,], 
+  row.names=make.unique(nga_wp.nonfunctional.dup$shapeName, sep = ".")[fips]),
+  check.names=FALSE)
+
+```
+
+Using *make.unique()* to make all values in *shapeName* attribute unique.
+
+## Mapping Local Moran's I
+
+```{r}
+nga.localMI <- cbind(nga_wp.nonfunctional,localMI) %>%
+  rename(Pr.Ii = Pr.z....E.Ii..)
+```
+
+Using the choropleth mapping functions of tmap package, plot the local Moran's I values by using the following code chunks.
+
+```{r}
+tmap_mode("view")
+localMI.map <- tm_shape(nga.localMI) +
+  tm_fill(col = "Ii", 
+          style = "pretty",
+          palette = "RdBu",
+          title = "local moran statistics") +
+  tm_borders(alpha = 0.5)
+
+pvalue.map <- tm_shape(nga.localMI) +
+  tm_fill(col = "Pr.Ii", 
+          breaks=c(-Inf, 0.001, 0.01, 0.05, 0.1, Inf),
+          palette="-Blues", 
+          title = "local Moran's I p-values") +
+  tm_borders(alpha = 0.5)
+
+tmap_arrange(localMI.map, pvalue.map, asp=1, ncol=2)
+
+```
+
+Based on the statistic evidence, Moran's I p-values contain missing values, and majority of the regions have 0.1 or more for its p-value, and based on the local Moran statistics, there seems to be a balance between 0-2 and -2 to 0.
+
+# LISA Cluster Map
+
+The cluster map shows significant location color coded by type of spatial autocorrelation. We are interested to generate the LISA cluster map for this.
+
+## Plot Moran Scatterplot
+
+The Moran scatterplot illustrates the relationship between the values of the chosen attribute at each location and the average value of the same attribute at neighboring locations.
+
+```{r}
+nci <- moran.plot(nga_wp.nonfunctional$`wpt non-functional` , rswm_q,
+                  labels=as.character(nga_wp.nonfunctional$shapeName), 
+                  xlab="Non-functional Waterpoint", 
+                  ylab="Spatially Lag Waterpoint")
+```
+
+The plot is split into 4 quadrants, having the top right corner belonging to area that have high waterpoints and are surrounded by other areas that have the average level of non-functional waterpoints.
+
+## Plotting Moran Scatterplot with Standardize Variable
+
+Using *scale()* to centers and scales the variable. This is done by substracting the mean (omitting NAs) the corresponding columns, and scaling is done by dividing the variable by their standard deviations.
+
+We will add *as.vector()* to ensure that the datatype is a vector which will map neatly into the dataframe.
+
+```{r}
+nga_wp.nonfunctional$`z.wpt non-functional` <- scale(nga_wp.nonfunctional$`wpt non-functional`) %>% 
+  as.vector 
+```
+
+We will plot the Moran scatterplot with standardize variable.
+
+```{r}
+nci2 <- moran.plot(nga_wp.nonfunctional$`z.wpt non-functional`, rswm_q,
+                   labels=as.character(nga_wp.nonfunctional$shapeName),
+                   xlab="z-Waterpoint", 
+                   ylab="Spatially Lag z-Waterpoint")
+```
+
+## LISA Map Classes Preparation
+
+We will need to derive the spatially lagged variable of interest and centers the spatially lagged variable around its mean.
+
+```{r}
+quadrant <- vector(mode="numeric",length=nrow(localMI))
+nga_wp.nonfunctional$lag_wp <- lag.listw(rswm_q, nga_wp.nonfunctional$`wpt non-functional`)
+DV <- nga_wp.nonfunctional$lag_wp - mean(nga_wp.nonfunctional$lag_wp) 
+```
+
+Centering the local Moran's around the mean.
+
+```{r}
+LM_I <- localMI[,1] - mean(localMI[,1])    
+```
+
+Set a statistical significance level for the local Moran.
+
+```{r}
+signif <- 0.05
+```
+
+The following will define the low-low, low-high, high-low, and high-high categories.
+
+```{r}
+quadrant[DV <0 & LM_I>0] <- 1
+quadrant[DV >0 & LM_I<0] <- 2
+quadrant[DV <0 & LM_I<0] <- 3  
+quadrant[DV >0 & LM_I>0] <- 4
+```
+
+Place the non-significant Moran in category 0.
+
+```{r}
+quadrant[localMI[,5]>signif] <- 0
+```
+
+## Plotting LISA Map
+
+By plotting both local Moran's I values map and its corresponding p-values map next to each other, we will be able to get a more effective interpretation.
+
+```{r}
+tmap_mode("view")
+
+nga.localMI$quadrant <- quadrant
+colors <- c("#ffffff", "#2c7bb6", "#abd9e9", "#fdae61", "#d7191c")
+clusters <- c("insignificant", "low-low", "low-high", "high-low", "high-high")
+
+LISAmap <- tm_shape(nga.localMI) +
+  tm_fill(col = "quadrant", 
+          style = "cat", 
+          palette = colors[c(sort(unique(quadrant)))+1], 
+          labels = clusters[c(sort(unique(quadrant)))+1]) +
+  tm_borders(alpha=0.5)
+
+tmap_arrange(localMI.map, LISAmap, asp=1, ncol=2)
+```
+
+Based on the LISA map above, we can see that there are large portion of insignificance regions and the top right edge regions in Niegra, there's a large portion shows **L-L** for non-functional water point. However, there is a region shows a **H-L** which indicates that the region, Jere, is a high outliner among low neighbors.
+
+# Hot spot and Cold Spot Area Analysis
+
+Beside detecting cluster and outliers, localised spatial statistics can be also used to detect hot spot and/or cold spot areas.
+
+The term 'hot spot' has been used generically across disciplines to describe a region or value that is higher relative to its surroundings. We have already derived the cut-off distance and the weight matrix, we will be looking at computing Gi Statistics.
+
+## Gi Statistics Using Fixed Distance
+
+Since we have already derived the cut-off distance and the weight matrix, we will need to convert nb object into spatial weights objects by using *nb2listw()*.
+
+```{r}
+wm72.lw <- nb2listw(wm_d72, style = 'B')
+summary(wm72.lw)
+```
+
+Using the spatial weight object, we will use it to compute Gi statistics using fixed distance.
+
+```{r}
+fips <- order(nga_wp.nonfunctional$shapeName)
+gi.fixed <- localG(nga_wp.nonfunctional$`wpt non-functional`, wm72.lw)
+gi.fixed
+```
+
+The output is a vector of G or Gstar values, with attributes "gstari" set to TRUE or FALSE, "call" set to the function call, and class "localG".
+
+The Gi statistics is represented as a Z-score. Greater values represent a greater intensity of clustering and the direction (positive or negative) indicates high or low clusters. We will join the Gi values to their corresponding sf data frame.
+
+```{r}
+nga.wp.nonfunctional.gi <- cbind(nga_wp.nonfunctional, as.matrix(gi.fixed)) %>%
+  rename(gstat_fixed = as.matrix.gi.fixed.)
+```
+
+The above code chunk does the following:
+
+-   it convert the output vector (i.e. *gi.fixed*) into r matrix object by using *as.matrix()*.
+
+-   *cbind()* is used to join hunan\@data and *gi.fixed* matrix to produce a new SpatialPolygonDataFrame called *hunan.gi*.
+
+-   the field name of the gi values is renamed to *gstat_fixed* by using *rename()*.
+
+## Plotting Gi Values With Fixed Distance Weights
+
+```{r}
+tmap_mode("view")
+nga.wp.non.map <- tm_shape(nga_wp.nonfunctional) +
+  tm_fill(col = "wpt non-functional", 
+          style = "pretty",
+          palette="-PRGn",
+          title = "Non-functional WP") +
+  tm_borders(alpha = 0.5)
+
+Gimap <-tm_shape(nga.wp.nonfunctional.gi) +
+  tm_fill(col = "gstat_fixed", 
+          style = "pretty",
+          palette="-RdBu",
+          title = "local Gi") +
+  tm_borders(alpha = 0.5)
+
+tmap_arrange(nga.wp.non.map, Gimap, asp=1, ncol=2)
+```
+
+## Gi Statistics Using Adaptive Distance Weight Matrix
+
+Similarly, we have derived the adaptive distance weight matrix above, we will need to use *nb2listw()* to convert the nb object into spatial weights object.
+
+In the above computation, we explored k value ranging from 8 to 15. We will convert the nb object into spatial weights object using the k value of 8.
+
+```{r}
+knn_lw <- nb2listw(loop.list[[8]], style = 'B')
+summary(knn_lw)
+```
+
+We will use the following code chunk to compute the Gi values by using an adaptive distance weight matrix.
+
+```{r}
+fips <- order(nga_wp.nonfunctional$shapeName)
+gi.adaptive <- localG(nga_wp.nonfunctional$`wpt non-functional`, knn_lw)
+nga.wp.nonfunctional.adaptive <- cbind(nga_wp.nonfunctional, as.matrix(gi.adaptive)) %>%
+  rename(gstat_adaptive = as.matrix.gi.adaptive.)
+```
+
+## Plot Gi Values With Adaptive Distance Weights
+
+```{r}
+tmap_mode("view")
+Gimap.adw <- tm_shape(nga.wp.nonfunctional.adaptive) + 
+  tm_fill(col = "gstat_adaptive", 
+          style = "pretty", 
+          palette="-RdBu", 
+          title = "local Gi") + 
+  tm_borders(alpha = 0.5)
+
+tmap_arrange(nga.wp.non.map, Gimap, asp=1, ncol=2)
+```
+
+# Conclusion
+
+There are many methods of using the appropriate spatial weighting. As shown above, the results varies when using fixed distance and adaptive distance. The use of Gi and LISA maps will allow users to have a better understanding of the geographical relationship based on the analyzed attributes.
+
+## Future Work
+
+We can look into the population of Nigeria in the near future and its needs based on regions, perhaps also based on the population size, we could identify where are the non-functional waterpoint in the region is lacking and needs to increase. We can also look into other geospatial analyst method to retrieve other information. The dataset contains date values, which we can look into to determine if there is any improvement in the waterpoints around Nigeria.
