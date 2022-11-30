@@ -45,7 +45,7 @@ The above R packages will be used for this hands-on exercise:
 ## Data Acquisition
 
 | Type                               | Name                                                                                                                                                     | Format(s) | Description                                                              |
-|------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|--------------------------------------------------------------------------|
+|-------------|---------------------------------|-------------|--------------|
 | Aspatial                           | [Water Point Data Exchange +](https://data.waterpointdata.org/dataset/Water-Point-Data-Exchange-Plus-WPdx-/eqje-vguj/data "Water Point Data Exchange +") | Shapefile | Global data repositories for water points                                |
 | Geospatial                         | [geoBoundaries](https://www.geoboundaries.org/index.html#getdata "geoBoundaries")                                                                        |           | UN OCHA CODs (Humanitarian) and UN SALB (Authoritative) data for Nigeria |
 | Geospatial - Alternate Data source | [Humanitarian Data Exchange portal](https://data.humdata.org/ "Humanitarian Data Exchange portal")                                                       |           | Humanitarian data                                                        |
@@ -111,16 +111,6 @@ There data points from 2010, 2013-2016, 2018-2022 as shown above. However, we wi
 freq(data=wp_nga, input = 'status_cle')
 ```
 
-Get data from year 2013-2016 and 2018-2022
-
-```{r}
-wp_nga2013 <- wp_nga %>% 
-  filter(Year %in% c("2013", "2014", "2015", "2016" ))
-
-wp_nga2018 <- wp_nga %>% 
-  filter(Year %in% c("2018", "2019", "2020", "2021", "2022"))
-```
-
 ### Functional Waterpoint in Nigeria
 
 ```{r}
@@ -132,14 +122,6 @@ Let's explore the data using the *funModeling* package `freq()` function. This w
 
 ```{r}
 freq(data=wpt_functional, input = 'status_cle')
-```
-
-```{r}
-wpt_functional2013 <- wpt_functional %>% 
-  filter(Year %in% c("2013", "2014", "2015", "2016" ))
-
-wpt_functional2018 <- wpt_functional %>% 
-  filter(Year %in% c("2018", "2019", "2020", "2021", "2022"))
 ```
 
 ### Non-Functional Waterpoint in Nigeria
@@ -156,15 +138,6 @@ wpt_nonfunctional <- wp_nga %>% filter(status_cle %in%
 ```{r}
 freq(data=wpt_nonfunctional, input ='status_cle')
 ```
-
-```{r}
-wpt_nonfunctional2013 <- wpt_nonfunctional %>% 
-  filter(Year %in% c("2013", "2014", "2015", "2016" ))
-
-wpt_nonfunctional2018 <- wpt_nonfunctional %>% 
-  filter(Year %in% c("2018", "2019", "2020", "2021", "2022"))
-```
-
 ### Unknown Waterpoint in Nigeria
 
 ```{r}
@@ -173,14 +146,6 @@ wpt_unknown <- wp_nga %>% filter(status_cle == "unknown")
 
 ```{r}
 freq(data=wpt_unknown, input ='status_cle')
-```
-
-```{r}
-wpt_unknown2013 <- wpt_unknown %>% 
-  filter(Year %in% c("2013", "2014", "2015", "2016" ))
-
-wpt_unknown2018 <- wpt_unknown %>% 
-  filter(Year %in% c("2018", "2019", "2020", "2021", "2022"))
 ```
 
 # Data Wrangling: Geospatial Data
@@ -270,9 +235,7 @@ Read the files after saving the integration by using the `read_rds()` function.
 nga_wp <- read_rds("data/geoBoundaries/nga_wp.rds")
 ```
 
-```{r}
-glimpse(nga_wp)
-```
+We can transform the dataset to EPSG: 26391 using the `st_transform()` function to get the Nigeria West Belt/ Minna projectors, but will be using EPSG:4326 as the coordinate reference system instead.
 
 # Visualization
 
