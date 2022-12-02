@@ -75,7 +75,7 @@ The csv file will be import using read_csv function of readr package.
 ict <- read_csv ("data/aspatial/Shan-ICT.csv")
 ```
 
-The imported InfoComm variables are extracted from **The 2014 Myanmar Population and Housing Census Myanmar**. The attribute data set is called *ict*. It is saved in R\'s \* tibble data.frame\* format.
+The imported InfoComm variables are extracted from **The 2014 Myanmar Population and Housing Census Myanmar**. The attribute data set is called *ict*. It is saved in R's \* tibble data.frame\* format.
 
 ```{r}
 summary(ict)
@@ -399,7 +399,7 @@ ac <- function(x) {
 map_dbl(m, ac)
 ```
 
-With reference to the output above, we can see that Ward\'s method provides the strongest clustering structure among the four methods assessed. Hence, in the subsequent analysis, only Ward\'s method will be used.
+With reference to the output above, we can see that Ward's method provides the strongest clustering structure among the four methods assessed. Hence, in the subsequent analysis, only Ward's method will be used.
 
 ## Determining Optimal Clusters
 
@@ -438,7 +438,7 @@ In the dendrogram displayed above, each leaf corresponds to one observation. As 
 
 The height of the fusion, provided on the vertical axis, indicates the (dis)similarity between two observations. The higher the height of the fusion, the less similar the observations are. Note that, conclusions about the proximity of two observations can be drawn only based on the height where branches containing those two observations first are fused. We cannot use the proximity of two observations along the horizontal axis as a criteria of their similarity.
 
-It\'s also possible to draw the dendrogram with a border around the selected clusters by using [*rect.hclust()*](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/rect.hclust.html) of R stats. The argument *border* is used to specify the border colors for the rectangles.
+It's also possible to draw the dendrogram with a border around the selected clusters by using [*rect.hclust()*](https://stat.ethz.ch/R-manual/R-devel/library/stats/html/rect.hclust.html) of R stats. The argument *border* is used to specify the border colors for the rectangles.
 
 ```{r}
 plot(hclust_ward, cex = 0.6)
