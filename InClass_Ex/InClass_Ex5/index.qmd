@@ -1,0 +1,485 @@
+---
+title: "In-Class Exercise 5"
+format: html
+execute:
+  echo: true
+  warning: false
+  message: false
+  fig-retine: 3
+editor: visual
+---
+
+# The Study
+
+To build an explanatory model to discover factor affecting water point status in Osub State, Nigeria
+
+**Study area:** Orun State, Nigeria
+
+**Data Set:**
+
+1.  Osun.rds - contains LGAs boundaries of Osun State. It is in sf polygon data frame
+
+2.  Osun_wp_sf.rds - contains water points within Osun State. It is in sf point data frame.
+
+## Model Variables
+
+**Dependent variable:** water point status (i.e. functional/ non-functional)
+
+**Independent Variables:**
+
+**Continuous**
+
+1.  distance_to_primary_road
+2.  distance_to_secondary_road
+3.  distance_to_tertiary_road
+4.  distance_to_city
+5.  distance_to_town
+6.  water_point_population
+7.  local_population_1Km
+
+**Categorical**
+
+1.  usage_capacity
+2.  is_urban
+3.  water_source_clean
+
+# Initialization
+
+Initialize the following packages using pacman:
+
+```{r}
+pacman::p_load(sf, tidyverse, funModeling, blorr, corrplot, ggpubr,
+               sf, spdep, GWmodel, tmap, skimr, caret, report)
+```
+
+The R packages needed for this exercise are as follows:
+
+-   R package for building OLS and performing diagnostics tests
+
+    -   [**olsrr**](https://olsrr.rsquaredacademy.com/)
+
+-   R package for calibrating geographical weighted family of models
+
+    -   [**GWmodel**](https://cran.r-project.org/web/packages/GWmodel/)
+
+-   R package for multivariate data visualisation and analysis
+
+    -   [**corrplot**](https://cran.r-project.org/web/packages/corrplot/vignettes/corrplot-intro.html)
+
+-   Spatial data handling
+
+    -   **sf**
+
+-   Attribute data handling
+
+    -   **tidyverse**, especially **readr**, **ggplot2** and **dplyr**
+
+-   Choropleth mapping
+
+    -   **tmap**
+
+-   Error Matrix
+
+    -   Caret
+
+-   Both funModeling and Skimr are similar to do exploratory
+
+# Data Import
+
+## Import Analytical Data
+
+```{r}
+Osun <- read_rds("data/rds/Osun.rds")
+Osun_wp_sf <- read_rds("data/rds/Osun_wp_sf.rds")
+```
+
+# Exploratory Data Analysis (EDA)
+
+```{r}
+Osun_wp_sf %>% freq(input = 'status')
+```
+
+Create a new attribute, *status*, and set binary (TRUE/FALSE) by using the `mutate()`. Adding in `recode()` to change functional and non-functional to TRUE and FALSE respectively.
+
+Based on the graph, we observed that there are about 55.5% of functional water points and 44.5% of non-functional water points.
+
+```{r}
+tmap_mode ("view")
+tm_shape(Osun) +
+  tm_polygons(alpha = 0.4) +
+  tm_shape(Osun_wp_sf) +
+  tm_dots(col = "status",
+          alpha = 0.6) +
+  tm_view(set.zoom.limits = c(9,12))
+```
+
+```{r}
+Osun_wp_sf_clean <- Osun_wp_sf %>%
+  filter_at(vars(status, 
+                 distance_to_primary_road,
+                 distance_to_secondary_road,
+                 distance_to_tertiary_road,
+                 distance_to_city,
+                 distance_to_town,
+                 water_point_population,
+                 local_population_1km,
+                 usage_capacity,
+                 is_urban,
+                 water_source_clean),
+            all_vars(!is.na(.))) %>%
+  mutate(usage_capcaity = as.factor(usage_capacity))
+```
+
+# Correlation Analysis
+
+```{r}
+Osun_wp <- Osun_wp_sf_clean %>%
+  select(c(7, 35:39, 42:43, 46:47, 57)) %>%
+  st_set_geometry(NULL)
+```
+
+Using either `st_set_geometry(NULL)` or `st_drop_geometry()` to drop geometry column.
+
+```{r}
+cluster_vars.cor = cor(
+  Osun_wp[, 2:7])
+corrplot.mixed(cluster_vars.cor, 
+               lower = "ellipse",
+               upper = "number",
+               tl.pos = "lt",
+               diag = "l",
+               tl.col = "black")
+```
+
+Based on the statistic evidence, we observed that there is no sign of multivariate correlation.
+
+```{r}
+model <- glm(status ~ distance_to_primary_road +
+               distance_to_secondary_road +
+               distance_to_tertiary_road +
+               distance_to_city +
+               distance_to_town +
+               is_urban +
+               usage_capacity +
+               water_source_clean +
+               water_point_population +
+               local_population_1km,
+             data = Osun_wp_sf_clean,
+             family = binomial(link='logit'))
+```
+
+Instead of using typical R report, `blr_regress()` of `blorr` package is used.
+
+```{r}
+blr_regress(model)
+```
+
+By looking at the table above, we observed that there are two variables, **distance_to_primary_road** and **distance_to_secondary_road**, larger than the alpha value of 0.05, and since the two variables are not statistically significant, we should exclude them.
+
+However, for the following, we are interested to find out what's the statistical result by leaving them in.
+
+An inverse correlation is denoted by the negative value of the estimate as shown in the table above.
+
+For categorical variables, a positive value implies an above average correlation and a negative value implies a below average correlation. Whereas, for continuous variables, a positive value implies a direct correlation and a negative value implies an inverse correlation, while the magnitude of the value gives the strength of the correlation.
+
+```{r}
+report(model)
+```
+
+```{r}
+blr_confusion_matrix(model, cutoff = 0.5)
+```
+
+We create a new data set to store the removed attributes, **distance_to_primary_road** and **distance_to_secondary_road**, larger than the alpha value of 0.05.
+
+```{r}
+model.rdrm <- glm(status ~ 
+               distance_to_tertiary_road +
+               distance_to_city +
+               distance_to_town +
+               is_urban +
+               usage_capacity +
+               water_source_clean +
+               water_point_population +
+               local_population_1km,
+             data = Osun_wp_sf_clean,
+             family = binomial(link='logit'))
+```
+
+Let's take a look at the confusion matrix after the two statistical non-significant attributes have been removed.
+
+```{r}
+blr_confusion_matrix(model.rdrm, cutoff = 0.5)
+```
+
+# Building Geographical Weight
+
+## Converting from sf to sp data
+
+```{r}
+Osun_wp_sp <- Osun_wp_sf_clean %>%
+  select(c(status,
+           distance_to_primary_road,
+           distance_to_secondary_road,
+           distance_to_tertiary_road,
+           distance_to_city,
+           distance_to_town,
+           water_point_population,
+           local_population_1km,
+           is_urban,
+           usage_capacity,
+           water_source_clean)) %>%
+  as_Spatial()
+Osun_wp_sp
+```
+
+```{r}
+#| eval: false
+bw.fixed <- bw.ggwr(status~
+                      distance_to_primary_road +
+                      distance_to_secondary_road +
+                      distance_to_tertiary_road +
+                      distance_to_city +
+                      distance_to_town +
+                      water_point_population +
+                      local_population_1km +
+                      is_urban +
+                      usage_capacity +
+                      water_source_clean,
+                    data = Osun_wp_sp,
+                    family = "binomial",
+                    approach = "AIC",
+                    kernel = "gaussian",
+                    adaptive = FALSE,
+                    longlat = FALSE)
+```
+
+```{r}
+#| eval: false
+bw.fixed
+```
+
+```{r}
+gwlr.fixed <- ggwr.basic(status ~ 
+                         distance_to_primary_road +
+                        distance_to_secondary_road+
+                        distance_to_tertiary_road +
+                        distance_to_city +
+                        distance_to_town +
+                        water_point_population +
+                        local_population_1km +
+                        is_urban +
+                        usage_capacity +
+                        water_source_clean,
+                      data = Osun_wp_sp,
+                      bw = 2599.672, #bw.fixed
+                      family = "binomial",
+                      kernel = "gaussian",
+                      adaptive = FALSE,
+                      longlat = FALSE)
+```
+
+Using the bandwidth attribute, bw, to include the found bandwidth, bw.fixed above.
+
+```{r}
+gwlr.fixed
+```
+
+## Non-significant variables removed
+
+Next, we will take a look at the model without the two non-significant variables.
+
+```{r}
+Osun_wp_sp.rdrm <- Osun_wp_sf_clean %>%
+  select(c(status,
+           distance_to_tertiary_road,
+           distance_to_city,
+           distance_to_town,
+           water_point_population,
+           local_population_1km,
+           is_urban,
+           usage_capacity,
+           water_source_clean)) %>%
+  as_Spatial()
+Osun_wp_sp
+```
+
+```{r}
+#| eval: false
+bw.fixed.rdrm <- bw.ggwr(status~
+                      distance_to_tertiary_road +
+                      distance_to_city +
+                      distance_to_town +
+                      water_point_population +
+                      local_population_1km +
+                      is_urban +
+                      usage_capacity +
+                      water_source_clean,
+                    data = Osun_wp_sp,
+                    family = "binomial",
+                    approach = "AIC",
+                    kernel = "gaussian",
+                    adaptive = FALSE,
+                    longlat = FALSE)
+```
+
+```{r}
+#| eval: false
+bw.fixed.rdrm
+```
+
+Without the two non-significant variables, the value of the fixed bandwidth dropped to 2377.371. Next, we are interested to find out the global value using the fixed bandwidth.
+
+```{r}
+gwlr.fixed.rdrm <- ggwr.basic(status ~ 
+                        distance_to_tertiary_road +
+                        distance_to_city +
+                        distance_to_town +
+                        water_point_population +
+                        local_population_1km +
+                        is_urban +
+                        usage_capacity +
+                        water_source_clean,
+                      data = Osun_wp_sp,
+                      bw = 2377.371,
+                      family = "binomial",
+                      kernel = "gaussian",
+                      adaptive = FALSE,
+                      longlat = FALSE)
+```
+
+```{r}
+gwlr.fixed.rdrm
+```
+
+# Model Assessment
+
+## Converting SDF into sf data.frame
+
+To assess the performance of the gwLR, firstly, we will convert the SDF object in as data frame by using `as.data.frame()`
+
+```{r}
+gwr.fixed <- as.data.frame(gwlr.fixed$SDF)
+```
+
+```{r}
+gwr.fixed.rdrm <- as.data.frame(gwlr.fixed.rdrm$SDF)
+```
+
+Next, we will label the *yhat* values greater or equal to 0.5 into 1 and else 0. The result of the logic comparison operation will be saved into a field called most.
+
+```{r}
+gwr.fixed <- gwr.fixed %>%
+  mutate(most = ifelse(
+    gwr.fixed$yhat >= 0.5, T, F
+  ))
+```
+
+```{r}
+gwr.fixed.rdrm <- gwr.fixed.rdrm %>%
+  mutate(most = ifelse(
+    gwr.fixed.rdrm$yhat >= 0.5, T, F
+  ))
+```
+
+```{r}
+gwr.fixed$y <- as.factor(gwr.fixed$y)
+gwr.fixed$most <- as.factor(gwr.fixed$most)
+CM <- confusionMatrix(data = gwr.fixed$most, reference = gwr.fixed$y)
+CM
+```
+
+The true negative increased to 0.89 in the local model as compared to the 0.63 in the global model.
+
+```{r}
+gwr.fixed.rdrm$y <- as.factor(gwr.fixed.rdrm$y)
+gwr.fixed.rdrm$most <- as.factor(gwr.fixed.rdrm$most)
+CM.rdrmd <- confusionMatrix(data = gwr.fixed.rdrm$most, reference = gwr.fixed.rdrm$y)
+CM.rdrmd
+```
+
+The sensitivity when removed two of the non-significant variables is similar to the value of the sensitivity when the two non-significant attributes are added in. Whereas, the specificity is slightly lesser when the two non-significant variables are removed, at 89%.
+
+Comparing both models to see the difference between when the non-significant variables were removed and when they are included.
+
+| Performance Measurement | Global | Local  | Global (Significant Variables Only) | Local (Significant Variables Only) |
+|-------------|-------------|-------------|------------------|-----------------|
+| Accuracy                | 0.6739 | 0.8837 | 0.6726                              | 0.8846                             |
+| Sensitivity             | 0.7207 | 0.8628 | 0.7188                              | 0.8671                             |
+| Specificity             | 0.6154 | 0.9005 | 0.6149                              | 0.8986                             |
+
+In general, when an independent variable was removed from a regression model, the overall explanatory or performance of the model will be compromised. This is the nature of regression models. 
+
+However, when an insignificant independent variable was removed from the model, we will expect an impact on the performance of the model where it will be lesser than when a significant independent was removed from the model.
+
+Comparing the two models, we observed that the sensitivity increased slightly while the specificity dropped slightly.
+
+# Visualizing gwLR
+
+Create a variable make a box.
+
+```{r}
+bbox_new <- st_bbox(Osun) # current bounding box
+
+xrange <- bbox_new$xmax - bbox_new$xmin
+yrange <- bbox_new$ymax - bbox_new$ymin 
+bbox_new[3] <- bbox_new[3] + (0.25 * xrange)
+bbox_new[4] <- bbox_new[4] + (0.2 * yrange) 
+
+bbox_new <- bbox_new %>% st_as_sfc()
+```
+
+## Model With All Variables Included
+
+We are interested to visualize results of the above models, but we will need to clean up the data before plotting. We will select the relevant attributes from the *status* column (usually the dependent/ predictive variables). Thereafter combining the with the predicted values by using `cbind()`.
+
+```{r}
+Osun_wp_sf_selected <- Osun_wp_sf_clean %>% 
+  select(c(ADM2_EN, ADM2_PCODE, 
+           ADM1_EN, ADM1_PCODE,
+           status))
+
+gwr_sf.fixed <- cbind(Osun_wp_sf_selected, gwr.fixed)
+```
+
+```{r}
+tmap_mode("view")
+prob_T <- tm_shape(Osun, bbox = bbox_new) +
+  tm_polygons(alpha = 0.1) +
+  tm_shape(gwr_sf.fixed) +
+  tm_dots(col = "yhat",
+          border.col = "gray60",
+          border.lw = 1) +
+  tm_view(set.zoom.limits = c(8,14))+
+  tm_layout(title='Non-significant Variables Included',  title.position = c('right', 'top'))
+prob_T
+```
+
+## Model With Non-significant variables Excluded
+
+```{r}
+Osun_wp_sf_selected.rdm <- Osun_wp_sf_clean %>% 
+  select(c(ADM2_EN, ADM2_PCODE, 
+           ADM1_EN, ADM1_PCODE,
+           status))
+
+gwr_sf.fixed.rdm <- cbind(Osun_wp_sf_selected.rdm, gwr.fixed.rdrm)
+```
+
+```{r}
+prob_T.rdrm <- tm_shape(Osun, bbox = bbox_new) +
+  tm_polygons(alpha = 0.1) +
+  tm_shape(gwr_sf.fixed.rdm) +
+  tm_dots(col = "yhat",
+          border.col = "gray60",
+          border.lw = 1) +
+  tm_view(set.zoom.limits = c(8,14))+
+  tm_layout(title='Non-significant Variables Excluded',  title.position = c('right', 'top'))
+prob_T.rdrm
+```
+
+Lastly, we will place both plots side by side to compare.
+
+```{r}
+tmap_arrange(prob_T, prob_T.rdrm, asp = 1, ncol=2, sync = TRUE)
+```
